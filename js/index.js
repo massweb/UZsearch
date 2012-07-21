@@ -85,8 +85,11 @@ $(function () {
             $(this.el).children("input").autocomplete({
                         source: function( request, response ) {
                                 $.ajax({
-                                        url: "mock.php?type=station/"+request.term,
+                                        url: "mock.php?type=station",
                                         type: "post",
+                                        data:{ name : request.term},
+                                            
+                                        
                                         success: function( data ) {
                                                 response( $.map( data.value, function( item ) {
                                                         return {
