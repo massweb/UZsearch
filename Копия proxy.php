@@ -4,7 +4,7 @@ error_reporting(0);
 	|| $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest'
 	|| !count($_POST) || !isset($_GET['ajax_url']))
 		die("0|Неверный запрос");*/
-$url_info = parse_url($_GET['type']);
+$url_info = parse_url($_GET['ajax_url']);
 unset($_POST['ajax_url']);
 
 $data = array();
@@ -21,33 +21,20 @@ $out .= "Connection: close\r\n\r\n";
 $out .= $data;
 fputs($fp, $out);
 
+$file = fopen('counter.txt', 'a');
+fwrite($file, $data);
+fwrite($file, "\n");
+fclose($file);
+
 $in = '';
 while (($line = fgets($fp, 8192))!==false) $in .= $line;
 fclose($fp);
 
-$answer=substr($in, strpos($in, "\r\n\r\n") + 4);
-
-if($data != ""){
-$link = mysql_connect('localhost', 'root', 'kavabanga');
-        
-        if (!$link) {
-            return "Подключение невозможно: ".mysql_error();
-        }
-        $answerDB=str_replace('\\','sssss',$answer);
-        $result = mysql_query("INSERT INTO mock.mock ( ask, answer) VALUES ('".$data."' , '".$answerDB."' );");
-        //$result = mysql_query("INSERT INTO mock.mock (ask, answer) VALUES ('test' , 'test' );");
-        
-        mysql_close($link);
-        
-
-}
-
-
 header("Content-type: application/json");
 header("Cache-Control: no-store, no-cache, must-revalidate");
 header("Cache-Control: post-check=0, pre-check=0", false);
-//print $test;
-print $answer;
+
+print substr($in, strpos($in, "\r\n\r\n") + 4);
 
 /*header("Content-type: application/json");
 header("Cache-Control: no-store, no-cache, must-revalidate");

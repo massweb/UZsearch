@@ -1,0 +1,14 @@
+
+
+station_id_from=2210700&station_id_till=2210770&station_from=Днепропетровск Главный&station_till=Евпатория-Курорт&date_start=24.08.2012&time_from=00:00&search=
+station_id_from=2210700&station_id_till=2210770&train=226Ш&coach_type_id=3&date_start=1345833480&round_trip=0
+station_id_from=2210700&station_id_till=2210770&train=226Ш&coach_num=10&coach_type_id=3&date_start=2012-08-24
+station_id_from=2210700&station_id_till=2210770&train=226Ш&coach_num=11&coach_type_id=3&date_start=2012-08-24
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_type_id=1&date_start=1345838400&round_trip=0
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_num=8&coach_type_id=1&date_start=2012-08-24
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_type_id=3&date_start=1345838400&round_trip=0
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_num=5&coach_type_id=3&date_start=2012-08-24
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_num=6&coach_type_id=3&date_start=2012-08-24
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_num=7&coach_type_id=3&date_start=2012-08-24
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_type_id=4&date_start=1345838400&round_trip=0
+station_id_from=2210700&station_id_till=2210770&train=247К&coach_num=4&coach_type_id=4&date_start=2012-08-24

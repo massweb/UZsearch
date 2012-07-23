@@ -23,9 +23,25 @@ $(function () {
     
     var Trip= Backbone.Model.extend({
         defaults: {
-            stationsFrom: null,
-            stationsTo: null,
-            dates: null
+            "stationsFrom": Stations,
+            "stationsTo": Stations,
+            "dates": Dates
+        },
+        combinated: function(){
+            var simplesTrip=new SimplesTrip();
+            this.get("dates").each(function(date){
+                this.get("stationsFrom").each(function(stationFrom){
+                    this.get("stationsTo").each(function(stationTo){
+                        
+                        simplesTrip.add({date:date, stationFrom:stationFrom, stationTo:stationTo});
+                    },this)
+                    
+                },this)
+                
+                
+            },this);
+            return simplesTrip;
+            
         }
 
     });
@@ -38,6 +54,291 @@ $(function () {
        collection: Travel 
     });
     //End block models
+    //Block model search
+    var Coach = Backbone.Model.extend({
+        defaults:{
+            "num":9,
+            "service":true,
+            "places_cnt":4,
+            "places":[],
+            "price":13638,
+            "reserve_price":1700,
+            "station_id_from":"2210700",
+            "station_id_till":"2210770",
+            "train":"226\u0428",
+            "date_start":"2012-07-21",
+            "coach_type_id":"3"
+        }
+        
+    });
+    var Coaches=Backbone.Collection.extend({
+        model: Coach,
+        initialize: function () { 
+            this.on('add', this.buildOne, this);
+        },
+        buildOne: function(one){
+            $.ajax({
+                    url: "mock.php?type=coach/",
+                    type: "post",
+                    data:{
+                        "station_id_from": one.get("station_id_from"),
+                        "station_id_till": one.get("station_id_till"),
+                        "train": one.get("train"),
+                        "coach_num": one.get("num"),
+                        "coach_type_id": one.get("coach_type_id"),
+                        "date_start": one.get("date_start")
+           	  
+                    },
+
+                    success: function( data ) {
+                            one.set({ "places" : data.value});
+                            
+                    }
+                        
+            });
+        }
+    });
+    
+    var Type = Backbone.Model.extend({
+        defaults:{
+            coaches: Coaches
+            
+            
+                
+        }
+        
+       
+    }) ;
+    
+    var Types=Backbone.Collection.extend({
+        model: Type
+    });
+    
+    var Train = Backbone.Model.extend({
+        defaults:{
+            "num":"226\u0428",
+            "model":0,
+            "from":
+            {
+                    "station_id":"2210700",
+                    "station":"\u0414\u041d\u0415\u041f\u0420\u041e\u041f\u0415\u0422\u0420\u041e\u0412\u0421\u041a \u0413\u041b\u0410\u0412\u041d\u042b\u0419",
+                    "date":1342895880
+            },
+            "till":
+            {
+                    "station_id":"2210770",
+                    "station":"\u0415\u0412\u041f\u0410\u0422\u041e\u0420\u0418\u042f-\u041a\u0423\u0420\u041e\u0420\u0422",
+                    "date":1342925100
+            },
+            "dateForSearch":"",
+            "typesForSearch": {},
+            "station_id_from": 2210700,
+            "station_id_till": 2210770,
+            "types": null
+
+        }
+        
+        
+        
+        
+    });
+    var Trains=Backbone.Collection.extend({
+        model: Train,
+        initialize: function () { 
+            this.on('add', this.buildOne, this);
+        },
+        buildOne: function (one){
+            var types=new Types();
+            one.set("types", types);
+            _.each(one.get("typesForSearch"),function(eachType){
+                $.ajax({
+                    url: "mock.php?type=coaches/",
+                    type: "post",
+                    data:{                    
+                        "station_id_from":	one.get("station_id_from"),
+                        "station_id_till":	one.get("station_id_till"),
+                        "train":	one.get("num"),
+                        "coach_type_id": eachType.type_id,
+                        "date_start": one.get("dateForSearch"),
+                        "round_trip":0	  
+                    },
+
+
+
+                    success: function( data ) {
+                        var type=new Type();
+                        var coaches=new Coaches();
+                        
+                        _.each(data.value.coaches,function(eachCoach){
+                            
+                            var coach=new Coach();
+                            coach.set({
+                                "num": eachCoach.num,
+                                "service":eachCoach.service,
+                                "places_cnt":eachCoach.places_cnt,
+                                "places":[],
+                                "price": eachCoach.price,
+                                "reserve_price":eachCoach.reserve_price,
+                                "station_id_from":eachCoach.station_id_from,
+                                "station_id_till":eachCoach.station_id_till,
+                                "train":eachCoach.train,
+                                "date_start":eachCoach.date_start,
+                                "coach_type_id":eachCoach.coach_type_id
+
+
+                            });
+                            coaches.add(coach);
+                            
+                        },this)
+                        type.set({"coaches":coaches});
+                        one.get("types").add(type);
+                    }
+                });
+            },this);
+                
+        }
+        
+        
+    });
+    
+    var SimpleTrip=Backbone.Model.extend({
+        defaults:{
+          "stationFrom": Station,
+          "stationTo": Station,
+          "date": Date,
+          "trains": Trains
+             
+        }
+        
+        
+    });
+    
+    var SimplesTrip=Backbone.Collection.extend({
+       model: SimpleTrip,
+       initialize: function () { 
+            this.on('add', this.buildOne, this);
+            
+        },
+        buildOne: function (one){
+            var trains=new Trains();
+            one.set("trains", trains);
+            $.ajax({
+                url: "mock.php?type=search/",
+                type: "post",
+                data:{                    
+                    "station_id_from": one.get("stationFrom").get("station_id"),
+                    "station_id_till": one.get("stationTo").get("station_id"),
+                    "station_from": one.get("stationFrom").get("title"),
+                    "station_till": one.get("stationTo").get("title"),
+                    "date_start": one.get("date").get("date"),
+                    "time_from": "00:00",
+                    "search" : ""	  
+                },
+
+
+
+                success: function( data ) {
+                    _.each(data.value,function(eachTrain){
+                        var train=new Train();
+                        train.set({
+                            "station_id_from": one.get("stationFrom").get("station_id"),
+                            "station_id_till": one.get("stationTo").get("station_id"),
+                            "num": eachTrain.num,
+                            "model":eachTrain.model,
+                            "from": eachTrain.from,
+                            "till": eachTrain.till,
+                            "dateForSearch": eachTrain.from.date,
+                            "typesForSearch": eachTrain.types
+            
+                            
+                        });
+                        one.get("trains").add(train);
+                        
+                        
+                    },this)
+                }
+            });
+                
+        }
+            
+        
+       
+    });
+    
+    var TripResult=Backbone.Model.extend({
+        defaults: {
+            "trip": "Trip",
+            "simplesTrip": "SimplesTrip"
+
+        }
+
+    });
+    
+    var TravelResult= Backbone.Collection.extend({
+        model: TripResult,
+        initialize: function () { 
+            this.on('add', this.buildOne, this);
+            
+        },
+        build: function (travel) {
+              travel.each(function(one){
+                
+                this.add({trip:one})
+            },this);
+        },
+        buildOne: function (one) {
+            var simplesTrip= one.get("trip").combinated();
+            one.set("simplesTrip", simplesTrip);
+            
+            
+            
+        }
+        
+    }); 
+  
+    //End block model search
+    //Block AppViews
+    var AppView=Backbone.View.extend({
+        initialize: function (options) {
+            //var testString='[{"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770}],"dates":[{"date":"26.08.2012"}]}]';
+            //this.travel= new Travel(JSON.parse(testString));
+            this.travel= new Travel();
+            this.travelResult;
+            this.render();
+            var travelView = new TravelView({ collection: this.travel, el :$(this.el).children($(".TravelView")) });
+            
+            
+        },
+        events: {
+           
+            "click .search" : "search",
+            "click .console" : "consoleShow"
+        },
+        
+        template: _.template($('#AppView').html()),
+        search: function(){
+
+            this.travelResult=new TravelResult();
+            this.travelResult.build(this.travel);
+
+            
+        },
+        consoleShow: function(){
+            console.log(JSON.stringify(this.travel));
+            console.log(this.travel);
+            console.log(JSON.stringify(this.travelResult));
+            
+        },
+        render: function(){
+            $(this.el).html(this.template());
+            $(this.el).children("button").button();
+            
+        }
+        
+            
+        
+    });
+    //End block AppViews
     // Block views
     var InputView = Backbone.View.extend({
         tagName: "span",
@@ -85,9 +386,9 @@ $(function () {
             $(this.el).children("input").autocomplete({
                         source: function( request, response ) {
                                 $.ajax({
-                                        url: "mock.php?type=station",
+                                        url: "mock.php?type=station/"+request.term+"/",
                                         type: "post",
-                                        data:{ name : request.term},
+                                        
                                             
                                         
                                         success: function( data ) {
@@ -118,6 +419,7 @@ $(function () {
             "click .add" : "createOne"
         },
         initialize: function() {
+            
 
             this.collection.on('add', this.addOne, this);
 
@@ -196,8 +498,7 @@ $(function () {
     var TravelView = EnumsView.extend({
         template: _.template($('#TravelView').html()),
         events: {
-            "click .addTrip" : "createOne",
-            "click .search" : "search"
+            "click .addTrip" : "createOne"
         },
         initialize: function() {
 
@@ -217,12 +518,11 @@ $(function () {
         addOne: function(one){
             var oneView = new TripView({model: one});
             $(this.el).children("div").append(oneView.render().el);
-        },
-        search: function(){
-            console.log(travel);
-            $("#result").html(JSON.stringify(travel));
-            
         }
+        
+
+            
+        
         
         
         
@@ -234,11 +534,14 @@ $(function () {
   //End block views
   
   //Init application
-  var travel= new Travel();
-  var travelView = new TravelView({ collection: travel, el :$("#app") });
+  //var travel= new Travel();
+  //var travelView = new TravelView({ collection: travel, el :$("#app") });
+  var appView=new AppView({el :$("#app")});
   //End init application
   //  var trip= new Trip();
   //  var tripView = new TripView({ model: trip, el :$("#app") });
+  
+
   
 
 

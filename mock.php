@@ -6,11 +6,11 @@ error_reporting(0);
 		die("0|Неверный запрос");
 $url_info = parse_url($_GET['ajax_url']);
 unset($_POST['ajax_url']);
-
+*/
 $data = array();
 foreach ($_POST as $k => $v) $data[] = $k.'='.$v;
 $data = implode('&', $data);
-
+/*
 $fp = fsockopen($url_info['host'], 80, $errno, $errstr, 6);
 if (!$fp) die("0|Не могу соединиться с ".@$url_info['host']);
 $out  = "POST ".$url_info['path']." HTTP/1.1\r\n";
@@ -34,16 +34,18 @@ print substr($in, strpos($in, "\r\n\r\n") + 4);
 header("Content-type: application/json");
 header("Cache-Control: no-store, no-cache, must-revalidate");
 header("Cache-Control: post-check=0, pre-check=0", false);
-$type=$_GET['type'];
-$name=$_POST['name'];
-unset($_POST['name']);
 
-$name=mb_strtolower(mb_substr($name,0,2,'UTF-8' ),'UTF-8');
+
+$type=mb_split ('/', $_GET['type']);
+$c=count($type);
+$name=mb_strtolower(mb_substr($type[$c-2],0,2,'UTF-8' ),'UTF-8');
 //$file = fopen('counter.txt', 'w');
 //fwrite($file, $type[1]);
 //fclose($file);
+//print $name;
+//print $type[$c-3];
 
-if ($type=="station")
+if ($type[$c-3]=="station")
 {
     switch ($name)
     {
@@ -63,9 +65,23 @@ if ($type=="station")
             print $name . "\n";
             print '{"value":[],"error":null,"data":null}';
     }
+} else {
+    
+        $link = mysql_connect('localhost', 'root', 'kavabanga');
+        
+        if (!$link) {
+            return "Подключение невозможно: ".mysql_error();
+        }
+        $result = mysql_query("SELECT answer FROM mock.mock WHERE ask='".$data."';");
+       
+        $temp=mysql_fetch_assoc($result);
+        mysql_close($link);
+        $answer=$temp['answer'];
+        $answer=str_replace('sssss','\\',$answer);
+        print $answer;
+        
+        
 }
-
-
 
 
 
