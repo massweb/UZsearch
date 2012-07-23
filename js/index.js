@@ -27,6 +27,22 @@ $(function () {
             "stationsTo": Stations,
             "dates": Dates
         },
+        constructFrom:function (obj){
+               var stationsFrom = new Stations(obj.stationsFrom);
+               var stationsTo = new Stations(obj.stationsTo);
+               var dates = new Dates(obj.dates);
+               this.set({
+                   "stationsFrom": stationsFrom,
+                   "stationsTo": stationsTo,
+                   "dates": dates
+                                  
+               });
+               
+               
+               
+               
+       
+        },
         combinated: function(){
             var simplesTrip=new SimplesTrip();
             this.get("dates").each(function(date){
@@ -47,7 +63,17 @@ $(function () {
     });
     
     var Travel= Backbone.Collection.extend({
-       model: Trip  
+       model: Trip,
+       constructFrom:function (obj){
+           _.each(obj, function (one){
+               var trip=new Trip();
+               trip.constructFrom(one);
+               this.add(trip);
+               
+               
+           },this );
+       }
+       
     });
     
     var History= Backbone.Collection.extend({
@@ -77,6 +103,8 @@ $(function () {
             this.on('add', this.buildOne, this);
         },
         buildOne: function(one){
+            //var tasksIN=tasks;
+            tasks.newTask();
             $.ajax({
                     url: "mock.php?type=coach/",
                     type: "post",
@@ -92,7 +120,11 @@ $(function () {
 
                     success: function( data ) {
                             one.set({ "places" : data.value});
+                            tasks.newDone();
                             
+                    },
+                    error: function(){
+                        tasks.newDone();
                     }
                         
             });
@@ -151,6 +183,8 @@ $(function () {
             var types=new Types();
             one.set("types", types);
             _.each(one.get("typesForSearch"),function(eachType){
+                //var tasksIN=tasks;
+                tasks.newTask();
                 $.ajax({
                     url: "mock.php?type=coaches/",
                     type: "post",
@@ -166,6 +200,7 @@ $(function () {
 
 
                     success: function( data ) {
+                        tasks.newDone();
                         var type=new Type();
                         var coaches=new Coaches();
                         
@@ -192,6 +227,9 @@ $(function () {
                         },this)
                         type.set({"coaches":coaches});
                         one.get("types").add(type);
+                    },
+                    error: function(){
+                        tasks.newDone();
                     }
                 });
             },this);
@@ -222,6 +260,8 @@ $(function () {
         buildOne: function (one){
             var trains=new Trains();
             one.set("trains", trains);
+            //var tasksIN=tasks;
+            tasks.newTask();
             $.ajax({
                 url: "mock.php?type=search/",
                 type: "post",
@@ -238,6 +278,7 @@ $(function () {
 
 
                 success: function( data ) {
+                    tasks.newDone();
                     _.each(data.value,function(eachTrain){
                         var train=new Train();
                         train.set({
@@ -256,7 +297,10 @@ $(function () {
                         
                         
                     },this)
-                }
+                },
+                error: function(){
+                        tasks.newDone();
+                    }
             });
                 
         }
@@ -300,13 +344,14 @@ $(function () {
     //Block AppViews
     var AppView=Backbone.View.extend({
         initialize: function (options) {
-            //var testString='[{"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770}],"dates":[{"date":"26.08.2012"}]}]';
-            //this.travel= new Travel(JSON.parse(testString));
+            var testString='[{"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"},{"date":"25.08.2012"},{"date":"26.08.2012"}]},{"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"29.08.2012"},{"date":"30.08.2012"},{"date":"31.08.2012"}]}]';
             this.travel= new Travel();
             this.travelResult;
             this.render();
             var travelView = new TravelView({ collection: this.travel, el :$(this.el).children($(".TravelView")) });
             
+            
+            this.travel.constructFrom(JSON.parse(testString));
             
         },
         events: {
@@ -317,6 +362,8 @@ $(function () {
         
         template: _.template($('#AppView').html()),
         search: function(){
+            tasks= new Tasks();
+            var tasksView= new TasksView({model:tasks, el :$(this.el).find($(".Result"))});
 
             this.travelResult=new TravelResult();
             this.travelResult.build(this.travel);
@@ -324,6 +371,7 @@ $(function () {
             
         },
         consoleShow: function(){
+            
             console.log(JSON.stringify(this.travel));
             console.log(this.travel);
             console.log(JSON.stringify(this.travelResult));
@@ -427,11 +475,13 @@ $(function () {
         render: function() {
             $(this.el).html(this.template());
             $(this.el).children("button").button();
+            this.collection.each(this.addOne, this)
             return this;
         },
         createOne: function() {
             this.collection.add();
         }
+
 
     });
     
@@ -442,6 +492,7 @@ $(function () {
             var oneView = new StationView({model: one});
             $(this.el).children("span").append(oneView.render().el);
         }
+        
         
     });
     
@@ -529,10 +580,54 @@ $(function () {
         
         
     });
-
+    
+    
    
   //End block views
+    var Tasks = Backbone.Model.extend({
+        defaults:{
+            allTasks:0,
+            doneTasks:0
+        },
+        newTask: function(){
+            this.set({"allTasks" : this.get("allTasks")+1});
+         
+        },
+        newDone:function(){
+            this.set({"doneTasks" : this.get("doneTasks")+1});
+        },
+        percent: function(){
+            var percent=0;
+            if (this.get("allTasks")!=0){
+                percent= (this.get("doneTasks")/this.get("allTasks"))*100;
+            }
+            return percent;
+            
+        }
+    })
+    
+    var TasksView = Backbone.View.extend({
+        template: _.template($('#Progress').html()),
+        initialize: function() {
+            $(this.el).html(this.template());
+            this.progress=$(this.el).find(".progressBar").progressbar({
+			value: 0
+		});
+
+            this.model.on('change', this.render, this);
+        
+
+        },
+        render: function(){
+            var percent=this.model.percent();
+            if (percent>this.progress.progressbar( "option", "value" )){
+               this.progress.progressbar( "option", "value", percent );
+            }
+        }
+        
+    })
   
+  var tasks;
   //Init application
   //var travel= new Travel();
   //var travelView = new TravelView({ collection: travel, el :$("#app") });

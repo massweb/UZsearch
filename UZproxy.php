@@ -4,7 +4,7 @@ error_reporting(0);
 	|| $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest'
 	|| !count($_POST) || !isset($_GET['ajax_url']))
 		die("0|Неверный запрос");*/
-$url_info = parse_url('http://booking.uz.gov.ua/ru/purchase/'.$_GET['type']);
+$url_info = parse_url($_GET['type']);
 unset($_POST['ajax_url']);
 
 $data = array();
