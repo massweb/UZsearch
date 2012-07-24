@@ -67,12 +67,12 @@ if ($type[$c-3]=="station")
     }
 } else {
     
-        $link = mysql_connect('localhost', 'root', 'kavabanga');
+        $link = mysql_connect('localhost', 'masswebh_root', 'Hjptnrf01');
         
         if (!$link) {
             return "Подключение невозможно: ".mysql_error();
         }
-        $result = mysql_query("SELECT answer FROM mock.mock WHERE ask='".$data."';");
+        $result = mysql_query("SELECT answer FROM masswebh_mock.mock WHERE ask='".$data."';");
        
         $temp=mysql_fetch_assoc($result);
         mysql_close($link);

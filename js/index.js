@@ -120,11 +120,11 @@ $(function () {
 
                     success: function( data ) {
                             one.set({ "places" : data.value});
-                            tasks.newDone();
+                            tasks.doneTask();
                             
                     },
                     error: function(){
-                        tasks.newDone();
+                        tasks.doneTask();
                     }
                         
             });
@@ -200,7 +200,7 @@ $(function () {
 
 
                     success: function( data ) {
-                        tasks.newDone();
+                        tasks.doneTask();
                         var type=new Type();
                         var coaches=new Coaches();
                         
@@ -229,7 +229,7 @@ $(function () {
                         one.get("types").add(type);
                     },
                     error: function(){
-                        tasks.newDone();
+                        tasks.doneTask();
                     }
                 });
             },this);
@@ -278,7 +278,7 @@ $(function () {
 
 
                 success: function( data ) {
-                    tasks.newDone();
+                    tasks.doneTask();
                     _.each(data.value,function(eachTrain){
                         var train=new Train();
                         train.set({
@@ -299,7 +299,7 @@ $(function () {
                     },this)
                 },
                 error: function(){
-                        tasks.newDone();
+                        tasks.doneTask();
                     }
             });
                 
@@ -593,7 +593,7 @@ $(function () {
             this.set({"allTasks" : this.get("allTasks")+1});
          
         },
-        newDone:function(){
+        doneTask:function(){
             this.set({"doneTasks" : this.get("doneTasks")+1});
         },
         percent: function(){
