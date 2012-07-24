@@ -27,7 +27,7 @@ fclose($fp);
 
 $answer=substr($in, strpos($in, "\r\n\r\n") + 4);
 
-if($data != ""){
+/*if($data != ""){
 $link = mysql_connect('localhost', 'root', 'kavabanga');
         
         if (!$link) {
@@ -41,18 +41,13 @@ $link = mysql_connect('localhost', 'root', 'kavabanga');
         
 
 }
-
+*/
 
 header("Content-type: application/json");
 header("Cache-Control: no-store, no-cache, must-revalidate");
 header("Cache-Control: post-check=0, pre-check=0", false);
-//print $test;
+
 print $answer;
 
-/*header("Content-type: application/json");
-header("Cache-Control: no-store, no-cache, must-revalidate");
-header("Cache-Control: post-check=0, pre-check=0", false);
 
-print '{"value":[{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u0432\u0441\u043a\u0430\u044f","station_id":2208327},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u0432\u0441\u043a\u0430\u044f","station_id":2210278},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u0434\u0437\u0435\u0440\u0436\u0438\u043d\u0441\u043a","station_id":2210650},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u0434\u0437\u0435\u0440\u0436\u0438\u043d\u0441\u043a \u041b\u0435\u0432","station_id":2210970},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u0434\u0437\u0435\u0440\u0436\u0438\u043d\u0441\u043a-\u041f\u0430\u0441\u0441.","station_id":2210720},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u043f\u0435\u0442\u0440\u043e\u0432\u0441\u043a \u0413\u043b\u0430\u0432\u043d\u044b\u0439","station_id":2210700},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u043f\u0435\u0442\u0440\u043e\u0432\u0441\u043a \u041e\u0434\u0431","station_id":2210739},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u043f\u0435\u0442\u0440\u043e\u0432\u0441\u043a \u042e\u0436\u043d\u044b\u0439","station_id":2210701},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u0440\u0443\u0434\u043d\u0430\u044f","station_id":2210200},{"title":"\u0414\u043d\u0435\u043f\u0440\u043e\u0441\u0442\u0440\u043e\u0439 2","station_id":2210831},{"title":"\u0414\u043d\u0435\u0441\u0442\u0440","station_id":2200236},{"title":"\u0414\u043d\u043e","station_id":2004570}],"error":null,"data":null}';
-*/
 ?>

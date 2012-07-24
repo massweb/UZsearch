@@ -1,5 +1,13 @@
 $(function () {
+    _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
     //Block models
+    var Parametrs= Backbone.Model.extend({
+       defaults: {
+           number:0
+           
+       } 
+    });
+    
     var Station= Backbone.Model.extend({ 
         defaults: {
             "title": "",
@@ -23,15 +31,18 @@ $(function () {
     
     var Trip= Backbone.Model.extend({
         defaults: {
+            "parametrs" : Parametrs,
             "stationsFrom": Stations,
             "stationsTo": Stations,
             "dates": Dates
         },
         constructFrom:function (obj){
+               var parametrs = new Parametrs(obj.parametrs);
                var stationsFrom = new Stations(obj.stationsFrom);
                var stationsTo = new Stations(obj.stationsTo);
                var dates = new Dates(obj.dates);
                this.set({
+                   "parametrs" : parametrs,
                    "stationsFrom": stationsFrom,
                    "stationsTo": stationsTo,
                    "dates": dates
@@ -118,13 +129,13 @@ $(function () {
            	  
                     },
 
-                    success: function( data ) {
-                            one.set({ "places" : data.value});
-                            tasks.newDone();
+                    success: function( data ) {                        
+                        one.set({"places" : data.value});
+                        tasks.doneTask();
                             
                     },
                     error: function(){
-                        tasks.newDone();
+                        tasks.doneTask();
                     }
                         
             });
@@ -150,18 +161,8 @@ $(function () {
         defaults:{
             "num":"226\u0428",
             "model":0,
-            "from":
-            {
-                    "station_id":"2210700",
-                    "station":"\u0414\u041d\u0415\u041f\u0420\u041e\u041f\u0415\u0422\u0420\u041e\u0412\u0421\u041a \u0413\u041b\u0410\u0412\u041d\u042b\u0419",
-                    "date":1342895880
-            },
-            "till":
-            {
-                    "station_id":"2210770",
-                    "station":"\u0415\u0412\u041f\u0410\u0422\u041e\u0420\u0418\u042f-\u041a\u0423\u0420\u041e\u0420\u0422",
-                    "date":1342925100
-            },
+            "from":{},
+            "till": {},
             "dateForSearch":"",
             "typesForSearch": {},
             "station_id_from": 2210700,
@@ -200,7 +201,7 @@ $(function () {
 
 
                     success: function( data ) {
-                        tasks.newDone();
+                        
                         var type=new Type();
                         var coaches=new Coaches();
                         
@@ -227,9 +228,10 @@ $(function () {
                         },this)
                         type.set({"coaches":coaches});
                         one.get("types").add(type);
+                        tasks.doneTask();
                     },
                     error: function(){
-                        tasks.newDone();
+                        tasks.doneTask();
                     }
                 });
             },this);
@@ -278,7 +280,6 @@ $(function () {
 
 
                 success: function( data ) {
-                    tasks.newDone();
                     _.each(data.value,function(eachTrain){
                         var train=new Train();
                         train.set({
@@ -297,9 +298,10 @@ $(function () {
                         
                         
                     },this)
+                    tasks.doneTask();
                 },
                 error: function(){
-                        tasks.newDone();
+                        tasks.doneTask();
                     }
             });
                 
@@ -344,11 +346,11 @@ $(function () {
     //Block AppViews
     var AppView=Backbone.View.extend({
         initialize: function (options) {
-            var testString='[{"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"},{"date":"25.08.2012"},{"date":"26.08.2012"}]},{"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"29.08.2012"},{"date":"30.08.2012"},{"date":"31.08.2012"}]}]';
+            var testString='[{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"},{"date":"25.08.2012"},{"date":"26.08.2012"}]},{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"29.08.2012"},{"date":"30.08.2012"},{"date":"31.08.2012"}]}]';
             this.travel= new Travel();
             this.travelResult;
             this.render();
-            var travelView = new TravelView({ collection: this.travel, el :$(this.el).children($(".TravelView")) });
+            var travelView = new TravelView({collection: this.travel, el :$(this.el).children($(".TravelView"))});
             
             
             this.travel.constructFrom(JSON.parse(testString));
@@ -375,6 +377,7 @@ $(function () {
             console.log(JSON.stringify(this.travel));
             console.log(this.travel);
             console.log(JSON.stringify(this.travelResult));
+
             
         },
         render: function(){
@@ -388,6 +391,27 @@ $(function () {
     });
     //End block AppViews
     // Block views
+    var ParametrsView = Backbone.View.extend({
+        template: _.template($('#Parametrs').html()),
+        events: {
+            "change .number" : "changeNumber"
+        },
+        initialize: function () { 
+            this.model.on('change', this.render, this);
+        },
+        changeNumber:function(){
+            this.model.set("number", $(this.el).find(".number").val());
+        },
+        render: function(){
+            $(this.el).html(this.template(this.model.toJSON()));
+            return this;
+            
+            
+        }
+        
+    });
+    
+    
     var InputView = Backbone.View.extend({
         tagName: "span",
         events: {        
@@ -522,10 +546,12 @@ $(function () {
 
         render: function(one){
             $(this.el).html(this.template());
-            var stationsFromView = new StationsView({ collection: this.model.get("stationsFrom")});
-            var stationsToView = new StationsView({ collection: this.model.get("stationsTo")});   
-            var datesView = new DatesView({ collection: this.model.get("dates")});
+            var parametrsView = new ParametrsView ({model: this.model.get("parametrs")});
+            var stationsFromView = new StationsView({collection: this.model.get("stationsFrom")});
+            var stationsToView = new StationsView({collection: this.model.get("stationsTo")});   
+            var datesView = new DatesView({collection: this.model.get("dates")});
             
+            $(this.el).children(".parametrsView").append(parametrsView.render().el);
             $(this.el).children(".stationsFromView").append(stationsFromView.render().el);
             $(this.el).children(".stationsToView").append(stationsToView.render().el);
             $(this.el).children(".datesView").append(datesView.render().el);
@@ -560,11 +586,12 @@ $(function () {
 
         },
         createOne: function() {
+            var parametrs = new Parametrs();
             var newStationsFrom = new Stations();
             var newStationsTo = new Stations();
             var newDates = new Dates();
             
-            this.collection.add({stationsFrom:newStationsFrom,stationsTo:newStationsTo,dates:newDates});
+            this.collection.add({parametrs: parametrs, stationsFrom:newStationsFrom,stationsTo:newStationsTo,dates:newDates});
         },
         addOne: function(one){
             var oneView = new TripView({model: one});
@@ -584,7 +611,8 @@ $(function () {
     
    
   //End block views
-    var Tasks = Backbone.Model.extend({
+  //Block Tasks
+      var Tasks = Backbone.Model.extend({
         defaults:{
             allTasks:0,
             doneTasks:0
@@ -593,7 +621,7 @@ $(function () {
             this.set({"allTasks" : this.get("allTasks")+1});
          
         },
-        newDone:function(){
+        doneTask:function(){
             this.set({"doneTasks" : this.get("doneTasks")+1});
         },
         percent: function(){
@@ -626,18 +654,137 @@ $(function () {
         }
         
     })
+  //End block Tasks
+  //Block SearchResult
+    
   
-  var tasks;
-  //Init application
-  //var travel= new Travel();
-  //var travelView = new TravelView({ collection: travel, el :$("#app") });
-  var appView=new AppView({el :$("#app")});
-  //End init application
-  //  var trip= new Trip();
-  //  var tripView = new TripView({ model: trip, el :$("#app") });
-  
+    var SearchFS = Backbone.Collection.extend({
+        model: TripFS
 
-  
+    });
+
+    var TripFS = Backbone.Model.extend({
+        defaults: {
+            datesFS : DatesFS
+        }
+
+
+    });
+    
+    var DatesFS = Backbone.Collection.extend({
+        model: DateFS
+        
+
+
+    });
+    
+    var DateFS = Backbone.Model.extend({
+       defaults:{
+           simpleTripsFS : SimpleTripsFS
+       } 
+        
+    });
+    
+    
+    var SimplesTripsFS = Backbone.Collection.extend({
+       model: SimpleTripFS
+        
+    });
+    
+    
+    var SimpleTripFS = Backbone.Model.extend({
+        defaults:{
+            trainsFS: TrainsFS
+        }
+        
+    })
+    
+    
+    
+    var TrainsFS=Backbone.Collection.extend({
+        model: TrainFS
+        
+        
+    });
+    
+    var TrainFS= Backbone.Model.extend({
+        defaults:{
+            typesFS:TypesFS
+        }
+        
+        
+        
+    });
+    
+    
+    var TypesFS= Backbone.Collection.extend({
+        model: TypeFS
+        
+        
+    });
+    
+    var TypeFS=Backbone.Model.extend({
+        defaults:{
+            coachesFS: CoachesFS,
+            type_id:3
+        },
+        initialize: function(){
+            var coachesFS= new CoachesFS();
+            coachesFS.add();
+            this.coachesFS=coachesFS;
+            
+        }
+        
+    });
+    
+    var CoachesFS= Backbone.Collection({
+        model : CoachFS
+    });
+    
+    var CoachFS = Backbone.Model.extend({
+        defaults:{
+            num:9,
+            type_id:3,
+            placesFS: PlacesFS
+        },
+        initialize: function(){
+            var placesFS= new placesFS();
+            placesFS.add();
+            this.placesFS=placesFS;
+            
+        }
+    });
+    
+    var PlacesFS = Backbone.Collection.extend({
+        model: PlaceFS
+    });
+    
+    
+    var PlaceFS = Backbone.Model.extend({
+       defaults:{
+           num: 25,
+           order: false
+       } 
+        
+    });
+
+    
+        
+        
+        
+        
+    //End block SearchResult
+    var tasks;
+    //Init application
+    //var travel= new Travel();
+    //var travelView = new TravelView({ collection: travel, el :$("#app") });
+    var appView=new AppView({el :$("#app")});
+    //End init application
+    //  var trip= new Trip();
+    //  var tripView = new TripView({ model: trip, el :$("#app") });
+
+
+
 
 
 

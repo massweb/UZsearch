@@ -20,11 +20,11 @@
         
         
         <script type="text/template" id="StationView">
-                <input class="input" type="text" value="<%= title %>" />
+                <input class="input" type="text" value="{{title}}" />
                 <button class="del">X</button>
         </script>
         <script type="text/template" id="DateView">
-                <input class="input" type="text" value="<%= date %>" />
+                <input class="input" type="text" value="{{date}}" />
                 <button class="del">X</button>    
         </script>
         <script type="text/template" id="StationsView">
@@ -36,6 +36,7 @@
                 <span></span>
         </script>
         <script type="text/template" id="TripView">
+                <div class="parametrsView"></div>
                 <div class="stationsFromView"></div>
                 <div class="stationsToView"></div>
                 <div class="datesView"></div>
@@ -55,6 +56,9 @@
         </script>
         <script type="text/template" id="Progress">
                 <div class="progressBar"></div>
+        </script>
+        <script type="text/template" id="Parametrs">
+                <span>Количество билетов:<input class="number" type="text" value="{{number}}" /><span>
         </script>
         
         

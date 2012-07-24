@@ -10,6 +10,7 @@ unset($_POST['ajax_url']);
 $data = array();
 foreach ($_POST as $k => $v) $data[] = $k.'='.$v;
 $data = implode('&', $data);
+$teststring=$data;
 /*
 $fp = fsockopen($url_info['host'], 80, $errno, $errstr, 6);
 if (!$fp) die("0|Не могу соединиться с ".@$url_info['host']);
@@ -78,6 +79,7 @@ if ($type[$c-3]=="station")
         mysql_close($link);
         $answer=$temp['answer'];
         $answer=str_replace('sssss','\\',$answer);
+        
         print $answer;
         
         
