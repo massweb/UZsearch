@@ -1,4 +1,56 @@
 $(function () {
+    var Facade = Backbone.Model.extend({
+        path: "mock.php?type=",
+        defaults:{
+            allTasks:0,
+            doneTasks:0
+        },
+        newTask: function(){
+            this.set({"allTasks" : this.get("allTasks")+1});
+         
+        },
+        doneTask:function(){
+            this.set({"doneTasks" : this.get("doneTasks")+1});
+        },
+        percent: function(){
+            var percent=0;
+            if (this.get("allTasks")!=0){
+                percent= (this.get("doneTasks")/this.get("allTasks"))*100;
+            }
+            return percent;
+            
+        },
+        zero: function(){
+          this.set({allTasks:0,doneTasks:0});  
+        },
+        ask: function(type, data, sender, receiver){
+            this.newTask();
+            var senderIN=sender;
+            var receiverIN=receiver;
+            var tasksIN=this;
+            $.ajax({
+                url: this.path+type,
+                type: "post",
+                data: data,
+
+
+                success: function( data ) {
+                    senderIN.answerFacade(data, receiverIN);
+                    tasksIN.doneTask();   
+                },
+                error:function(){
+                    tasksIN.doneTask();
+
+                }
+            });
+        }
+    });
+    
+  
+    
+    
+    
+    
     _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
     //Block models
     var Parametrs= Backbone.Model.extend({
@@ -54,20 +106,26 @@ $(function () {
                
        
         },
-        combinated: function(){
-            var simplesTrip=new SimplesTrip();
+        combinated: function(tid){
+            var arr =  new Array();
             this.get("dates").each(function(date){
                 this.get("stationsFrom").each(function(stationFrom){
                     this.get("stationsTo").each(function(stationTo){
-                        
-                        simplesTrip.add({date:date, stationFrom:stationFrom, stationTo:stationTo});
+                        arr[arr.length]={
+                            datestart: date.get("date"),
+                            station_id_from: stationFrom.get("station_id"),
+                            station_from: stationFrom.get("title"),
+                            station_id_till: stationTo.get("station_id"),
+                            station_till: stationTo.get("title")
+                        };
+                       
                     },this)
                     
                 },this)
                 
                 
             },this);
-            return simplesTrip;
+            return arr;
             
         }
 
@@ -91,7 +149,7 @@ $(function () {
        collection: Travel 
     });
     //End block models
-    //Block model search
+   /* //Block model search
     var Coach = Backbone.Model.extend({
         defaults:{
             "num":9,
@@ -341,19 +399,21 @@ $(function () {
         }
         
     }); 
-  
+  */
     //End block model search
     //Block AppViews
     var AppView=Backbone.View.extend({
         initialize: function (options) {
             var testString='[{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"},{"date":"25.08.2012"},{"date":"26.08.2012"}]},{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"29.08.2012"},{"date":"30.08.2012"},{"date":"31.08.2012"}]}]';
-            this.travel= new Travel();
-            this.travelResult;
+            
+            
             this.render();
-            var travelView = new TravelView({collection: this.travel, el :$(this.el).children($(".TravelView"))});
+            
+            travel= new Travel();
+            var travelView = new TravelView({collection: travel, el :$(this.el).children($(".TravelView"))});
             
             
-            this.travel.constructFrom(JSON.parse(testString));
+            travel.constructFrom(JSON.parse(testString));
             
         },
         events: {
@@ -364,19 +424,20 @@ $(function () {
         
         template: _.template($('#AppView').html()),
         search: function(){
-            tasks= new Tasks();
-            var tasksView= new TasksView({model:tasks, el :$(this.el).find($(".Result"))});
+            facade.zero();
+            var tasksView= new TasksView({model:facade, el :$(this.el).find($(".Result"))});
 
-            this.travelResult=new TravelResult();
-            this.travelResult.build(this.travel);
+            travelResult=new TravelResult();
+            
+            travelResult.downloadPlaces(travel);
 
             
         },
         consoleShow: function(){
             
-            console.log(JSON.stringify(this.travel));
-            console.log(this.travel);
-            console.log(JSON.stringify(this.travelResult));
+            console.log(JSON.stringify(travel));
+            console.log(travel);
+            console.log(JSON.stringify(travelResult));
 
             
         },
@@ -457,24 +518,21 @@ $(function () {
             $(this.el).html(this.template(this.model.toJSON()));
             $(this.el).children("input").autocomplete({
                         source: function( request, response ) {
-                                $.ajax({
-                                        url: "mock.php?type=station/"+request.term+"/",
-                                        type: "post",
-                                        
-                                            
-                                        
-                                        success: function( data ) {
-                                                response( $.map( data.value, function( item ) {
-                                                        return {
-                                                                label: item.title,
-                                                                value: item.title,
-                                                                station_id: item.station_id
-                                                        }
-                                                }));
-                                        }
-                                });
+                            request.answerFacade= function(data, response){
+                                response( $.map( data.value, function( item ) {
+                                    return {
+                                            label: item.title,
+                                            value: item.title,
+                                            station_id: item.station_id
+                                    }
+                                }));
+                            
+                            };
+                            facade.ask("station/"+request.term+"/", null, request, response);
+                            
                         },
                         minLength: 3,
+                        
                         select: function( event, ui ) {
                             modelIN.set( {"title": ui.item.label, "station_id" : ui.item.station_id});
                         }
@@ -611,28 +669,8 @@ $(function () {
     
    
   //End block views
-  //Block Tasks
-      var Tasks = Backbone.Model.extend({
-        defaults:{
-            allTasks:0,
-            doneTasks:0
-        },
-        newTask: function(){
-            this.set({"allTasks" : this.get("allTasks")+1});
-         
-        },
-        doneTask:function(){
-            this.set({"doneTasks" : this.get("doneTasks")+1});
-        },
-        percent: function(){
-            var percent=0;
-            if (this.get("allTasks")!=0){
-                percent= (this.get("doneTasks")/this.get("allTasks"))*100;
-            }
-            return percent;
-            
-        }
-    })
+  //Block TasksView
+      
     
     var TasksView = Backbone.View.extend({
         template: _.template($('#Progress').html()),
@@ -654,127 +692,179 @@ $(function () {
         }
         
     })
-  //End block Tasks
+  //End block TasksView
   //Block SearchResult
-    
-  
-    var SearchFS = Backbone.Collection.extend({
-        model: TripFS
-
-    });
-
-    var TripFS = Backbone.Model.extend({
-        defaults: {
-            datesFS : DatesFS
-        }
-
-
-    });
-    
-    var DatesFS = Backbone.Collection.extend({
-        model: DateFS
-        
-
-
-    });
-    
-    var DateFS = Backbone.Model.extend({
+  //Relation Logic
+   var TravelResult = Backbone.Model.extend({
        defaults:{
-           simpleTripsFS : SimpleTripsFS
-       } 
-        
-    });
-    
-    
-    var SimplesTripsFS = Backbone.Collection.extend({
-       model: SimpleTripFS
-        
-    });
-    
-    
-    var SimpleTripFS = Backbone.Model.extend({
-        defaults:{
-            trainsFS: TrainsFS
-        }
-        
-    })
-    
-    
-    
-    var TrainsFS=Backbone.Collection.extend({
-        model: TrainFS
-        
-        
-    });
-    
-    var TrainFS= Backbone.Model.extend({
-        defaults:{
-            typesFS:TypesFS
-        }
-        
-        
-        
-    });
-    
-    
-    var TypesFS= Backbone.Collection.extend({
-        model: TypeFS
-        
-        
-    });
-    
-    var TypeFS=Backbone.Model.extend({
-        defaults:{
-            coachesFS: CoachesFS,
-            type_id:3
+           tableTrips:TableTrips,
+           tableSimpleTrips:TableSimpleTrips,
+           tableTrains:TableTrains,
+           tableTypes:TableTypes,
+           tableCoaches:TableCoaches,
+           tablePlaces:TablePlaces
+       },
+       initialize: function(){
+           var tableTrips =  new TableTrips();
+           var tableSimpleTrips = new TableSimpleTrips();
+           var tableTrains = new TableTrains();
+           var tableTypes = new TableTypes();
+           var tableCoaches = new TableCoaches();
+           var tablePlaces = new TablePlaces();
+           
+           this.set({
+               
+               "tableTrips": tableTrips,
+               "tableSimpleTrips": tableSimpleTrips,
+               "tableTrains": tableTrains,
+               "tableTypes": tableTypes,
+               "tableCoaches": tableCoaches,
+               "tablePlaces": tablePlaces
+               
+           });
+           
+           
+       },
+       downloadPlaces:function (){
+           travel.each(function(one){
+               this.addRowTrip();
+               
+               
+                
+           
+           },this);
         },
-        initialize: function(){
-            var coachesFS= new CoachesFS();
-            coachesFS.add();
-            this.coachesFS=coachesFS;
-            
-        }
-        
-    });
-    
-    var CoachesFS= Backbone.Collection({
-        model : CoachFS
-    });
-    
-    var CoachFS = Backbone.Model.extend({
-        defaults:{
-            num:9,
-            type_id:3,
-            placesFS: PlacesFS
-        },
-        initialize: function(){
-            var placesFS= new placesFS();
-            placesFS.add();
-            this.placesFS=placesFS;
-            
-        }
-    });
-    
-    var PlacesFS = Backbone.Collection.extend({
-        model: PlaceFS
-    });
-    
-    
-    var PlaceFS = Backbone.Model.extend({
+       addRowTrip:function(){
+           
+           var l=this.get("tableTrips").length;
+           var test=this.get("tableTrips");
+           test.add({tid:l});
+           
+           
+       }
+       
+       
+   });
+   var RowTrip = Backbone.Model.extend({
        defaults:{
-           num: 25,
-           order: false
-       } 
+           "tid":0
+       }
+   });
+   
+   
+   var TableTrips = Backbone.Collection.extend({
+       model: RowTrip,
+       initialize: function(){
+           this.on('add', this.buildNext, this);
+           
+       },
+       buildNext:function(one){
+           var tid=one.get("tid");
+           var arr=travel.models[tid].combinated();
+           _.each(arr, function(one){
+               one.tidTrip=tid;
+               var l=travelResult.get("tableSimpleTrips").length;
+               one.tid=l;
+               travelResult.get("tableSimpleTrips").add(one);
+               
+           },this);
+       }
+   });
+   
+   
+   var RowSimpleTrip = Backbone.Model.extend({
+      defaults:{
+          tid: 0,
+          tidTrip: 0,
+          station_id_from:0,
+          station_id_till:0,
+          station_from: "",
+          station_till: "",
+          date_start: ""
+      } 
+   });
+   
+   
+   var TableSimpleTrips = Backbone.Collection.extend({
+       model: RowSimpleTrip
+   });
+   
+   var RowTrain = Backbone.Model.extend({
+       defaults: {
+           tid:0,
+           tidSimpleTrip:0,
+           num:0,
+           model:0,
+           from_station_id:0,
+           from_station: "",
+           from_date: 0,
+           till_station_id:0,
+           till_station:"",
+           till_date: 0
+       }
+   });
+   
+   var TableTrains = Backbone.Collection.extend({
+       model: RowTrain
+   });
+   
+   var RowType= Backbone.Model.extend({
+       defaults:{
+           tid:0,
+           tidTrain:0,
+           type_id:0
+       }
+   });
+   
+   var TableTypes = Backbone.Collection.extend({
+       model: RowType
+   });
+   
+   var RowCoach = Backbone.Model.extend({
+       defaults:{
+           tid:0,
+           tidTrain:0,
+           num:0,
+           service: true,
+           price: 0,
+           reserve_price:0,
+           station_id_from:0,
+           station_id_till:0,
+           train: "",
+           date_start:"",
+           coach_type_id:0,
+           goodPlaces:0
+               
+       }
+   });
+   
+   var TableCoaches = Backbone.Collection.extend({
+       model: RowCoach
+   });
+   
+   
+   var RowPlace = Backbone.Model.extend({
+       defaults:{
+           tid:0,
+           tidCoach:0,
+           place:0,
+           order:false
+       }
+   })
+   var TablePlaces = Backbone.Collection.extend({
+       model: RowPlace
+   });
+   
+   
+   
         
-    });
-
-    
         
-        
-        
-        
+  //End Relation Logic      
     //End block SearchResult
-    var tasks;
+    var travel;
+    var travelResult;
+    
+    var facade= new Facade();
     //Init application
     //var travel= new Travel();
     //var travelView = new TravelView({ collection: travel, el :$("#app") });

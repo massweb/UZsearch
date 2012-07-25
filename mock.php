@@ -45,7 +45,6 @@ $name=mb_strtolower(mb_substr($type[$c-2],0,2,'UTF-8' ),'UTF-8');
 //fclose($file);
 //print $name;
 //print $type[$c-3];
-
 if ($type[$c-3]=="station")
 {
     switch ($name)
