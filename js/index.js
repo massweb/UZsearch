@@ -29,7 +29,7 @@ $(function () {
             var receiverIN=receiver;
             var tasksIN=this;
             $.ajax({
-                url: this.path+type,
+                url: this.path+type+"/",
                 type: "post",
                 data: data,
 
@@ -112,7 +112,7 @@ $(function () {
                 this.get("stationsFrom").each(function(stationFrom){
                     this.get("stationsTo").each(function(stationTo){
                         arr[arr.length]={
-                            datestart: date.get("date"),
+                            date_start: date.get("date"),
                             station_id_from: stationFrom.get("station_id"),
                             station_from: stationFrom.get("title"),
                             station_id_till: stationTo.get("station_id"),
@@ -528,7 +528,7 @@ $(function () {
                                 }));
                             
                             };
-                            facade.ask("station/"+request.term+"/", null, request, response);
+                            facade.ask("station/"+request.term, null, request, response);
                             
                         },
                         minLength: 3,
@@ -727,20 +727,16 @@ $(function () {
        },
        downloadPlaces:function (){
            travel.each(function(one){
-               this.addRowTrip();
+               var row={}
+               this.get("tableTrips").addRow(row);
                
                
                 
            
            },this);
-        },
-       addRowTrip:function(){
-           
-           var l=this.get("tableTrips").length;
-           var test=this.get("tableTrips");
-           test.add({tid:l});
-           
-           
+       },
+       getTrainByTid: function (tidTrain){
+           return this.get("tableTrains").where({tid:tidTrain})[0];
        }
        
        
@@ -758,14 +754,17 @@ $(function () {
            this.on('add', this.buildNext, this);
            
        },
+       addRow:function(row){
+           row.tid=this.length;
+           this.add(row);
+       },
        buildNext:function(one){
            var tid=one.get("tid");
            var arr=travel.models[tid].combinated();
-           _.each(arr, function(one){
-               one.tidTrip=tid;
-               var l=travelResult.get("tableSimpleTrips").length;
-               one.tid=l;
-               travelResult.get("tableSimpleTrips").add(one);
+           _.each(arr, function(row){
+               row.tidTrip=tid;
+               row.tid=this.length;
+               travelResult.get("tableSimpleTrips").addRow(row);
                
            },this);
        }
@@ -780,13 +779,74 @@ $(function () {
           station_id_till:0,
           station_from: "",
           station_till: "",
-          date_start: ""
-      } 
+          date_start: "",
+          goodPlaces: 0
+      },
+      getData: function(){
+          
+          return {
+              "station_id_from": this.get("station_id_from"),
+              "station_id_till": this.get("station_id_till"),
+              "station_from": this.get("station_from"),
+              "station_till": this.get("station_till"),
+              "date_start": this.get("date_start"),
+              "time_from": "00:00",
+              "search" : ""
+              
+          }
+      }
+      
    });
    
    
    var TableSimpleTrips = Backbone.Collection.extend({
-       model: RowSimpleTrip
+       model: RowSimpleTrip,
+       initialize: function(){
+           this.on('add', this.buildNext, this);
+           
+       },
+       addRow:function(row){
+           row.tid=this.length;
+           this.add(row);
+       },
+       
+       buildNext:function(one){
+           var tid=one.get("tid");
+           var data=one.getData();
+           facade.ask("search", data, this , tid);
+           
+       },
+       answerFacade: function(data, tid){
+           var tidSimpleTrip=tid;
+           _.each(data.value,function(eachTrain){
+               var rowTrain = {
+                    "tidSimpleTrip": tidSimpleTrip,
+                    "num": eachTrain.num,
+                    "model":eachTrain.model,
+                    "station_id_from": eachTrain.from.station_id,
+                    "station_from": eachTrain.from.station,
+                    "date_from": eachTrain.from.date,
+                    "station_id_till": eachTrain.till.station_id,
+                    "station_till": eachTrain.till.station,
+                    "date_till": eachTrain.till.date,
+            
+                            
+               };
+               
+               var tidTrain=travelResult.get("tableTrains").addRow(rowTrain);
+               _.each(eachTrain.types,function(eachType){
+                    var rowType = {
+                        "tidTrain" : tidTrain,
+                        "type_id" : eachType.type_id
+                   
+                    };
+                    travelResult.get("tableTypes").addRow(rowType);
+                    
+               
+               },this);
+           },this)
+           
+       }
    });
    
    var RowTrain = Backbone.Model.extend({
@@ -795,17 +855,27 @@ $(function () {
            tidSimpleTrip:0,
            num:0,
            model:0,
-           from_station_id:0,
-           from_station: "",
-           from_date: 0,
-           till_station_id:0,
-           till_station:"",
-           till_date: 0
+           station_id_from:0,
+           station_from: "",
+           date_from: 0,
+           station_id_till:0,
+           station_till:"",
+           date_till: 0,
+           goodPlaces:0
        }
    });
    
    var TableTrains = Backbone.Collection.extend({
-       model: RowTrain
+       model: RowTrain,
+       initialize: function(){
+           
+           
+       },
+       addRow:function(row){
+           row.tid=this.length;
+           this.add(row);
+           return row.tid;
+       }
    });
    
    var RowType= Backbone.Model.extend({
@@ -817,7 +887,52 @@ $(function () {
    });
    
    var TableTypes = Backbone.Collection.extend({
-       model: RowType
+       model: RowType,
+       initialize: function(){
+           this.on('add', this.buildNext, this);
+           
+       },
+       addRow:function(row){
+           row.tid=this.length;
+           this.add(row);
+       },
+       buildNext:function(one){
+           
+           var tidTrain=one.get("tidTrain");
+           var train=travelResult.getTrainByTid(tidTrain);
+           data={                    
+                "station_id_from":	train.get("station_id_from"),
+                "station_id_till":	train.get("station_id_till"),
+                "train":	train.get("num"),
+                "coach_type_id": one.get("type_id"),
+                "date_start": train.get("date_from"),
+                "round_trip":0	  
+           };
+
+           facade.ask("coaches", data, this , tidTrain);
+
+       },
+       answerFacade: function(data, tid){
+           var tidTrain=tid;
+           _.each(data.value.coaches,function(eachCoach){
+               var row={
+                   "tidTrain" : tidTrain,
+                   "num": eachCoach.num,
+                   "service":eachCoach.service,
+                   "price": eachCoach.price,
+                   "reserve_price":eachCoach.reserve_price,
+                   "station_id_from":eachCoach.station_id_from,
+                   "station_id_till":eachCoach.station_id_till,
+                   "train":eachCoach.train,
+                   "date_start":eachCoach.date_start,
+                   "coach_type_id":eachCoach.coach_type_id
+                };
+                travelResult.get("tableCoaches").addRow(row);
+
+            },this);
+            
+           
+       }
    });
    
    var RowCoach = Backbone.Model.extend({
@@ -839,7 +954,53 @@ $(function () {
    });
    
    var TableCoaches = Backbone.Collection.extend({
-       model: RowCoach
+       model: RowCoach,
+       initialize: function(){
+           this.on('add', this.buildNext, this);
+           
+       },
+       addRow:function(row){
+           row.tid=this.length;
+           this.add(row);
+       },
+       buildNext:function(one){
+           
+           var tidCoach=one.get("tid");
+           var data={
+                        "station_id_from": one.get("station_id_from"),
+                        "station_id_till": one.get("station_id_till"),
+                        "train": one.get("train"),
+                        "coach_num": one.get("num"),
+                        "coach_type_id": one.get("coach_type_id"),
+                        "date_start": one.get("date_start")
+           	  
+                    };
+           
+
+           facade.ask("coach", data, this , tidCoach);
+          
+           
+       },
+       answerFacade: function(data, tid){
+           var tidCoach=tid;
+           _.each(data.value,function(eachPlace){
+               var row={
+                   "tidCoach":tidCoach,
+                   "place":eachPlace
+                   
+               }
+               travelResult.get("tablePlaces").addRow(row);
+               
+           },this);
+           
+            
+           
+       }
+       
+       
+       
+       
+       
    });
    
    
@@ -848,11 +1009,20 @@ $(function () {
            tid:0,
            tidCoach:0,
            place:0,
-           order:false
+           order:false,
+           goodPlace:true
        }
    })
    var TablePlaces = Backbone.Collection.extend({
-       model: RowPlace
+       model: RowPlace,
+       initialize: function(){
+           
+           
+       },
+       addRow:function(row){
+           row.tid=this.length;
+           this.add(row);
+       }
    });
    
    
