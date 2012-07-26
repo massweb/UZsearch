@@ -1,4 +1,6 @@
 $(function () {
+    _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
+    
     var Facade = Backbone.Model.extend({
         path: "mock.php?type=",
         defaults:{
@@ -17,6 +19,7 @@ $(function () {
             if (this.get("allTasks")!=0){
                 percent= (this.get("doneTasks")/this.get("allTasks"))*100;
             }
+            
             return percent;
             
         },
@@ -51,7 +54,42 @@ $(function () {
     
     
     
-    _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
+    
+    
+    //Start TravelREsultView
+    
+    var TravelResultView= new Backbone.View.extend({
+        //template: _.template($('#TravelResultView').html()),
+        initialize: function(){
+            this.render();
+           
+           
+        },
+        render: function() {
+            $(this.el).html(this.template());
+            this.model.get("tableTrips").each(this.addOne, this)
+            return this;
+        },
+        createOne: function() {
+            this.collection.add();
+        },
+        addOne: function(one) {
+            //var oneView = new TripResultView({model: one});
+            //$(this.el).children("div").append(oneView.render().el);
+        }
+
+
+    });
+    
+
+    
+    
+    
+    
+    
+    //End TravelResultView    
+    
+    
     //Block models
     var Parametrs= Backbone.Model.extend({
        defaults: {
@@ -149,262 +187,13 @@ $(function () {
        collection: Travel 
     });
     //End block models
-   /* //Block model search
-    var Coach = Backbone.Model.extend({
-        defaults:{
-            "num":9,
-            "service":true,
-            "places_cnt":4,
-            "places":[],
-            "price":13638,
-            "reserve_price":1700,
-            "station_id_from":"2210700",
-            "station_id_till":"2210770",
-            "train":"226\u0428",
-            "date_start":"2012-07-21",
-            "coach_type_id":"3"
-        }
-        
-    });
-    var Coaches=Backbone.Collection.extend({
-        model: Coach,
-        initialize: function () { 
-            this.on('add', this.buildOne, this);
-        },
-        buildOne: function(one){
-            //var tasksIN=tasks;
-            tasks.newTask();
-            $.ajax({
-                    url: "mock.php?type=coach/",
-                    type: "post",
-                    data:{
-                        "station_id_from": one.get("station_id_from"),
-                        "station_id_till": one.get("station_id_till"),
-                        "train": one.get("train"),
-                        "coach_num": one.get("num"),
-                        "coach_type_id": one.get("coach_type_id"),
-                        "date_start": one.get("date_start")
-           	  
-                    },
+    //Block model search
 
-                    success: function( data ) {                        
-                        one.set({"places" : data.value});
-                        tasks.doneTask();
-                            
-                    },
-                    error: function(){
-                        tasks.doneTask();
-                    }
-                        
-            });
-        }
-    });
-    
-    var Type = Backbone.Model.extend({
-        defaults:{
-            coaches: Coaches
-            
-            
-                
-        }
-        
-       
-    }) ;
-    
-    var Types=Backbone.Collection.extend({
-        model: Type
-    });
-    
-    var Train = Backbone.Model.extend({
-        defaults:{
-            "num":"226\u0428",
-            "model":0,
-            "from":{},
-            "till": {},
-            "dateForSearch":"",
-            "typesForSearch": {},
-            "station_id_from": 2210700,
-            "station_id_till": 2210770,
-            "types": null
-
-        }
-        
-        
-        
-        
-    });
-    var Trains=Backbone.Collection.extend({
-        model: Train,
-        initialize: function () { 
-            this.on('add', this.buildOne, this);
-        },
-        buildOne: function (one){
-            var types=new Types();
-            one.set("types", types);
-            _.each(one.get("typesForSearch"),function(eachType){
-                //var tasksIN=tasks;
-                tasks.newTask();
-                $.ajax({
-                    url: "mock.php?type=coaches/",
-                    type: "post",
-                    data:{                    
-                        "station_id_from":	one.get("station_id_from"),
-                        "station_id_till":	one.get("station_id_till"),
-                        "train":	one.get("num"),
-                        "coach_type_id": eachType.type_id,
-                        "date_start": one.get("dateForSearch"),
-                        "round_trip":0	  
-                    },
-
-
-
-                    success: function( data ) {
-                        
-                        var type=new Type();
-                        var coaches=new Coaches();
-                        
-                        _.each(data.value.coaches,function(eachCoach){
-                            
-                            var coach=new Coach();
-                            coach.set({
-                                "num": eachCoach.num,
-                                "service":eachCoach.service,
-                                "places_cnt":eachCoach.places_cnt,
-                                "places":[],
-                                "price": eachCoach.price,
-                                "reserve_price":eachCoach.reserve_price,
-                                "station_id_from":eachCoach.station_id_from,
-                                "station_id_till":eachCoach.station_id_till,
-                                "train":eachCoach.train,
-                                "date_start":eachCoach.date_start,
-                                "coach_type_id":eachCoach.coach_type_id
-
-
-                            });
-                            coaches.add(coach);
-                            
-                        },this)
-                        type.set({"coaches":coaches});
-                        one.get("types").add(type);
-                        tasks.doneTask();
-                    },
-                    error: function(){
-                        tasks.doneTask();
-                    }
-                });
-            },this);
-                
-        }
-        
-        
-    });
-    
-    var SimpleTrip=Backbone.Model.extend({
-        defaults:{
-          "stationFrom": Station,
-          "stationTo": Station,
-          "date": Date,
-          "trains": Trains
-             
-        }
-        
-        
-    });
-    
-    var SimplesTrip=Backbone.Collection.extend({
-       model: SimpleTrip,
-       initialize: function () { 
-            this.on('add', this.buildOne, this);
-            
-        },
-        buildOne: function (one){
-            var trains=new Trains();
-            one.set("trains", trains);
-            //var tasksIN=tasks;
-            tasks.newTask();
-            $.ajax({
-                url: "mock.php?type=search/",
-                type: "post",
-                data:{                    
-                    "station_id_from": one.get("stationFrom").get("station_id"),
-                    "station_id_till": one.get("stationTo").get("station_id"),
-                    "station_from": one.get("stationFrom").get("title"),
-                    "station_till": one.get("stationTo").get("title"),
-                    "date_start": one.get("date").get("date"),
-                    "time_from": "00:00",
-                    "search" : ""	  
-                },
-
-
-
-                success: function( data ) {
-                    _.each(data.value,function(eachTrain){
-                        var train=new Train();
-                        train.set({
-                            "station_id_from": one.get("stationFrom").get("station_id"),
-                            "station_id_till": one.get("stationTo").get("station_id"),
-                            "num": eachTrain.num,
-                            "model":eachTrain.model,
-                            "from": eachTrain.from,
-                            "till": eachTrain.till,
-                            "dateForSearch": eachTrain.from.date,
-                            "typesForSearch": eachTrain.types
-            
-                            
-                        });
-                        one.get("trains").add(train);
-                        
-                        
-                    },this)
-                    tasks.doneTask();
-                },
-                error: function(){
-                        tasks.doneTask();
-                    }
-            });
-                
-        }
-            
-        
-       
-    });
-    
-    var TripResult=Backbone.Model.extend({
-        defaults: {
-            "trip": "Trip",
-            "simplesTrip": "SimplesTrip"
-
-        }
-
-    });
-    
-    var TravelResult= Backbone.Collection.extend({
-        model: TripResult,
-        initialize: function () { 
-            this.on('add', this.buildOne, this);
-            
-        },
-        build: function (travel) {
-              travel.each(function(one){
-                
-                this.add({trip:one})
-            },this);
-        },
-        buildOne: function (one) {
-            var simplesTrip= one.get("trip").combinated();
-            one.set("simplesTrip", simplesTrip);
-            
-            
-            
-        }
-        
-    }); 
-  */
     //End block model search
     //Block AppViews
     var AppView=Backbone.View.extend({
         initialize: function (options) {
-            var testString='[{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"},{"date":"25.08.2012"},{"date":"26.08.2012"}]},{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"29.08.2012"},{"date":"30.08.2012"},{"date":"31.08.2012"}]}]';
+            var testString='[{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"}]},{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"31.08.2012"}]}]';
             
             
             this.render();
@@ -445,7 +234,14 @@ $(function () {
             $(this.el).html(this.template());
             $(this.el).children("button").button();
             
+        },
+        showResult:function(){
+            travelResult.countGoodPlaces();
+            var travelResultView = new TravelResultView({model: travelResult, el:$(this.el).find($(".Result"))});
+            
         }
+        
+        
         
             
         
@@ -689,6 +485,9 @@ $(function () {
             if (percent>this.progress.progressbar( "option", "value" )){
                this.progress.progressbar( "option", "value", percent );
             }
+            if (percent==100){
+                appView.showResult();
+            }
         }
         
     })
@@ -737,6 +536,13 @@ $(function () {
        },
        getTrainByTid: function (tidTrain){
            return this.get("tableTrains").where({tid:tidTrain})[0];
+       },
+       countGoodPlaces: function(){
+           var arr=this.get("tablePlaces").countGoodPlaces();
+           arr=this.get("tableCoaches").countGoodPlaces(arr);
+           arr=this.get("tableTrains").countGoodPlaces(arr);
+           this.get("tableSimpleTrips").countGoodPlaces(arr);
+           
        }
        
        
@@ -828,7 +634,7 @@ $(function () {
                     "date_from": eachTrain.from.date,
                     "station_id_till": eachTrain.till.station_id,
                     "station_till": eachTrain.till.station,
-                    "date_till": eachTrain.till.date,
+                    "date_till": eachTrain.till.date
             
                             
                };
@@ -846,6 +652,11 @@ $(function () {
                },this);
            },this)
            
+       },
+       countGoodPlaces: function(arr){
+           this.each(function(one){
+               one.set({"goodPlaces": arr[one.get("tid")]});             
+           },this);
        }
    });
    
@@ -875,6 +686,18 @@ $(function () {
            row.tid=this.length;
            this.add(row);
            return row.tid;
+       },
+       countGoodPlaces: function(arr){
+           var newArr=new Array();
+           this.each(function(one){
+               one.set({"goodPlaces": arr[one.get("tid")]});
+               newArr[one.get("tidSimpleTrip")]==undefined ? newArr[one.get("tidSimpleTrip")]=one.get("goodPlaces") : newArr[one.get("tidSimpleTrip")]+=one.get("goodPlaces");
+                    
+               
+               
+           },this);
+           return newArr;
+           
        }
    });
    
@@ -995,6 +818,18 @@ $(function () {
            
             
            
+       },
+       countGoodPlaces: function(arr){
+           var newArr=new Array();
+           this.each(function(one){
+               one.set({"goodPlaces": arr[one.get("tid")]});
+               newArr[one.get("tidTrain")]==undefined ? newArr[one.get("tidTrain")]=one.get("goodPlaces") : newArr[one.get("tidTrain")]+=one.get("goodPlaces");
+                    
+               
+               
+           },this);
+           return newArr;
+           
        }
        
        
@@ -1022,6 +857,21 @@ $(function () {
        addRow:function(row){
            row.tid=this.length;
            this.add(row);
+       },
+       countGoodPlaces:function(){
+           var newArr=new Array();
+           this.each(function(one){
+               if (one.get("goodPlace")){
+                   newArr[one.get("tidCoach")]==undefined ? newArr[one.get("tidCoach")]=1 : newArr[one.get("tidCoach")]++;
+                    
+               }
+               
+           },this);
+           _.each(newArr, function(one){
+               if (one==undefined){one=0};
+               
+           },this);
+           return newArr;
        }
    });
    
@@ -1031,6 +881,7 @@ $(function () {
         
   //End Relation Logic      
     //End block SearchResult
+    
     var travel;
     var travelResult;
     
