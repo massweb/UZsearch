@@ -3,58 +3,41 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>UZsearch</title>
-        <link rel="stylesheet" href="css/style.css" />
-        <link rel="stylesheet" type="text/css" media="screen" href="css/redmond/jquery-ui-1.8.20.custom.css" />
+        <script type="text/javascript">
+        Function.prototype.process= function( state ){
+          var process= function( ){
+              var args= arguments;
+              var self= arguments.callee;
+              setTimeout( function( ){
+                  self.handler.apply( self, args );
+              }, 0 )
+          }
+          for( var i in state ) process[ i ]= state[ i ];
+          process.handler= this;
+          return process;
+      }
 
-        <script src="js/jquery-1.7.2.js" type="text/javascript"></script>
-        <script src="js/jquery-ui-1.8.20.custom.min.js"></script>
-        <script src="js/underscore.js"></script>
-        <script src="js/backbone.js"></script>
-        
-        <script src="js/example.js"></script>
+
+
+
+        var printer= function( data ){
+           document.write( data + ' ' );
+       }
+       printer= printer.process();
+       for( var i= 0; i<100; i++ ){
+           printer( i );
+           document.write( '| ' );
+       }
+        </script>
 
     </head>
     <body>
-        <div id="app"></div>
-       
+        
+     
+
         
         
-        <script type="text/template" id="StationView">
-                <input class="input" type="text" value="<%= title %>" />
-                <button class="del">X</button>
-        </script>
-        <script type="text/template" id="DateView">
-                <input class="input" type="text" value="<%= date %>" />
-                <button class="del">X</button>    
-        </script>
-        <script type="text/template" id="StationsView">
-                <button class="add">Добавить станцию</button>
-                <span></span>
-        </script>
-        <script type="text/template" id="DatesView">
-                <button class="add">Добавить дату</button>
-                <span></span>
-        </script>
-        <script type="text/template" id="TripView">
-                <div class="stationsFromView"></div>
-                <div class="stationsToView"></div>
-                <div class="datesView"></div>
-                <button class="del">Удалить поездку</button>
-                <hr>
-        </script>
-        <script type="text/template" id="TravelView">
-                <div class="Travel"></div>
-                <button class="addTrip">Добавить поездку</button>
-                
-        </script>
-        <script type="text/template" id="AppView">
-                <div class="TravelView"></div>
-                <button class="search">Поиск мест</button>
-                <div class="Result"></div>
-        </script>
-        
-        
-        
+      
         
         
         

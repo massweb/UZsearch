@@ -1,4 +1,26 @@
 $(function () {
+    /*Function.prototype.process= function( state ){
+          var process= function( ){
+              var args= arguments;
+              var self= arguments.callee;
+              setTimeout( function( ){
+                  self.handler.apply( self, args );
+              }, 0 )
+          }
+          for( var i in state ) process[ i ]= state[ i ];
+          process.handler= this;
+          return process;
+      }
+    */
+
+    var arrType=new Array();
+    arrType[1]="Л";
+    arrType[3]="К";
+    arrType[4]="П";
+    arrType[14]="С2";
+    
+
+
     _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
     
     var Facade = Backbone.Model.extend({
@@ -56,30 +78,152 @@ $(function () {
     
     
     
-    //Start TravelREsultView
+    //Start TravelResultView
     
-    var TravelResultView= new Backbone.View.extend({
-        //template: _.template($('#TravelResultView').html()),
+    var TravelResultView= Backbone.View.extend({
+        template: _.template($('#TravelResultView').html()),
         initialize: function(){
+            arrayTasks=new Array();
             this.render();
+            //this.renderNext();
            
            
         },
         render: function() {
             $(this.el).html(this.template());
-            this.model.get("tableTrips").each(this.addOne, this)
+            travelResult.get("tableTrips").each(this.addOne, this)
             return this;
         },
         createOne: function() {
             this.collection.add();
         },
         addOne: function(one) {
-            //var oneView = new TripResultView({model: one});
-            //$(this.el).children("div").append(oneView.render().el);
+            var oneView = new SimpleTripsResultView({
+                model: one,
+                collection: travelResult.get("tableSimpleTrips")
+            });
+            $(this.el).children("div").append(oneView.render().el);
+        },
+        renderNext: function(){
+            _.each(arrayTasks,function(one){
+                one.next();
+
+            });
         }
 
 
     });
+    
+    var SimpleTripsResultView = Backbone.View.extend({
+        template: _.template($('#SimpleTripsResultView').html()),
+        render: function() {
+            $(this.el).html(this.template());
+            _.each( this.collection.where({tidTrip: this.model.get("tid")}), this.addOne,this);
+            return this;
+        },
+        addOne: function(one) {
+            
+            var oneView = new SimpleTripResultView({
+                model: one,
+                collection: travelResult.get("tableTrains")
+                    
+            });
+            $(this.el).children("div").append(oneView.render().el);
+
+        }
+    });
+    
+    var SimpleTripResultView= Backbone.View.extend({
+        template: _.template($('#SimpleTripResultView').html()),
+        events:{
+            "click .toggle" : "toggle"
+        },
+         initialize: function () { 
+            this.on('next', this.next, this);
+        },
+
+        render: function() {
+            $(this.el).html(this.template(this.model.toJSON()));
+            $(this.el).find("button").button();
+            $(this.el).find(".accordion").hide();
+            
+            if (this.model.get("goodPlaces")>0){this.next();}
+            return this;
+        },
+        next: function(){
+            _.each(this.collection.where({tidSimpleTrip: this.model.get("tid")}),this.addOne,this);
+            $(this.el).find(".accordion").accordion({
+                collapsible: true,
+                autoHeight: false,
+                active: false
+            });
+            
+
+        },
+        addOne: function(one) {
+            if ( one.get("goodPlaces")>0 ) {
+                var oneView = new TrainResultView({
+                    model: one,
+                    collection: travelResult.get("tableCoaches")
+                    
+                });
+                $(this.el).find(".accordion").append(oneView.header());
+                $(this.el).find(".accordion").append(oneView.render().el);
+            }
+        },
+        toggle:function(){
+            $(this.el).find(".accordion").toggle();
+        }
+        
+        
+    });
+    
+    var TrainResultView= Backbone.View.extend({
+        template: _.template($('#TrainHeader').html()),
+        render: function() {
+            $(this.el).append($("<ul>"));
+            $(this.el).tabs({
+                tabTemplate: "<li><a href='#{href}'>#{label}</a></li>",
+                collapsible: true
+
+            });
+            _.each(this.collection.where({tidTrain: this.model.get("tid")}),this.addOne,this);
+            $(this.el).tabs( "option", "selected", -1 );
+            return this;
+        },
+        addOne: function(one) {
+            if ( one.get("goodPlaces")>0 ) {
+                var oneView = new CoachResultView({
+                    model: one,
+                    collection: travelResult.get("tablePlaces")
+                });
+                $(this.el).tabs( "add", "#tab-" + one.get("tid"), one.get("num")+" "+arrType[one.get("coach_type_id")] );
+                
+                $(this.el).find("#tab-"+one.get("tid")).append(oneView.render().el);
+            }
+        },
+        header: function(){
+            return $("<h3>").html(this.template(this.model.toJSON()));
+
+        }
+        
+        
+    });
+
+    var CoachResultView =Backbone.View.extend({
+        render: function(){
+            _.each(this.collection.where({tidCoach: this.model.get("tid")}),this.addOne,this);
+            return this;
+        },
+        addOne: function(one){
+            $(this.el).append($("<button>").button({ label: one.get("place") + (one.get("goodPlace")?"*": "")}));
+
+
+
+        }
+    })
+
+
     
 
     
@@ -93,7 +237,18 @@ $(function () {
     //Block models
     var Parametrs= Backbone.Model.extend({
        defaults: {
-           number:0
+           number:0,
+           l:false,
+           k:true,
+           p:false,
+           s1:false,
+           s2:false,
+           down:false,
+           one:false,
+           side:false,
+           from: "00:00",
+           till: "23:59"
+
            
        } 
     });
@@ -193,7 +348,7 @@ $(function () {
     //Block AppViews
     var AppView=Backbone.View.extend({
         initialize: function (options) {
-            var testString='[{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"}]},{"parametrs":{"number":"1"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"31.08.2012"}]}]';
+            var testString='[{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"}]},{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"31.08.2012"}]}]';
             
             
             this.render();
@@ -217,7 +372,6 @@ $(function () {
             var tasksView= new TasksView({model:facade, el :$(this.el).find($(".Result"))});
 
             travelResult=new TravelResult();
-            
             travelResult.downloadPlaces(travel);
 
             
@@ -236,6 +390,7 @@ $(function () {
             
         },
         showResult:function(){
+            
             travelResult.countGoodPlaces();
             var travelResultView = new TravelResultView({model: travelResult, el:$(this.el).find($(".Result"))});
             
@@ -249,18 +404,58 @@ $(function () {
     //End block AppViews
     // Block views
     var ParametrsView = Backbone.View.extend({
-        template: _.template($('#Parametrs').html()),
+        template: _.template($('#ParametrsView').html()),
         events: {
-            "change .number" : "changeNumber"
+            "change .changing" : "changeParam"
         },
-        initialize: function () { 
-            this.model.on('change', this.render, this);
-        },
-        changeNumber:function(){
-            this.model.set("number", $(this.el).find(".number").val());
+        changeParam:function(e){
+            //this.model.set("number", $(this.el).find(".number").val());
+            var param=e.currentTarget.id;
+            var value=e.currentTarget.value;
+            if (value=="on"){value=true;}
+            if (value=="off"){value=false;}
+            var obj={};
+            obj[param]=value;
+            this.model.set(obj);
         },
         render: function(){
             $(this.el).html(this.template(this.model.toJSON()));
+            $(this.el).find("#from").timepicker({});
+            $(this.el).find("#till").timepicker({});
+            
+
+            //$(this.el).find("#buttonset").buttonset();
+
+           /* $(this.el).find("#l").button( "option", "label", "Л" );
+            $(this.el).find("#k").button( "option", "label", "К" );
+            $(this.el).find("#p").button( "option", "label", "П" );
+            $(this.el).find("#s1").button( "option", "label", "С1" );
+            $(this.el).find("#s2").button( "option", "label", "С2" );
+
+            $(this.el).find("#down").button({ label: "Только нижние" });
+            $(this.el).find("#one").button({ label: "В одном купе" });
+            $(this.el).find("#side").button({ label: "Не боковые" });
+            */           
+
+            $(this.el).find("#number").val(this.model.get("number"));
+
+            $(this.el).find("#l").attr('checked', this.model.get("l"));
+            $(this.el).find("#k").attr('checked', this.model.get("k"));
+            $(this.el).find("#p").attr('checked', this.model.get("p"));
+            $(this.el).find("#s1").attr('checked', this.model.get("s1"));
+            $(this.el).find("#s2").attr('checked', this.model.get("s2"));
+            $(this.el).find("#down").attr('checked', this.model.get("down"));
+            $(this.el).find("#one").attr('checked', this.model.get("one"));
+            $(this.el).find("#side").attr('checked', this.model.get("side"));
+
+
+
+
+           $(this.el).find("#from").val(this.model.get("from"));
+           
+           $(this.el).find("#till").val(this.model.get("till"));
+          
+
             return this;
             
             
@@ -440,12 +635,12 @@ $(function () {
 
         },
         createOne: function() {
-            var parametrs = new Parametrs();
+            var newParametrs = new Parametrs();
             var newStationsFrom = new Stations();
             var newStationsTo = new Stations();
             var newDates = new Dates();
             
-            this.collection.add({parametrs: parametrs, stationsFrom:newStationsFrom,stationsTo:newStationsTo,dates:newDates});
+            this.collection.add({parametrs: newParametrs, stationsFrom:newStationsFrom,stationsTo:newStationsTo,dates:newDates});
         },
         addOne: function(one){
             var oneView = new TripView({model: one});
@@ -655,6 +850,7 @@ $(function () {
        },
        countGoodPlaces: function(arr){
            this.each(function(one){
+               arr[one.get("tid")]==undefined ? arr[one.get("tid")]=0 :arr[one.get("tid")];
                one.set({"goodPlaces": arr[one.get("tid")]});             
            },this);
        }
@@ -690,6 +886,7 @@ $(function () {
        countGoodPlaces: function(arr){
            var newArr=new Array();
            this.each(function(one){
+               arr[one.get("tid")]==undefined ? arr[one.get("tid")]=0 :arr[one.get("tid")];
                one.set({"goodPlaces": arr[one.get("tid")]});
                newArr[one.get("tidSimpleTrip")]==undefined ? newArr[one.get("tidSimpleTrip")]=one.get("goodPlaces") : newArr[one.get("tidSimpleTrip")]+=one.get("goodPlaces");
                     
@@ -822,6 +1019,7 @@ $(function () {
        countGoodPlaces: function(arr){
            var newArr=new Array();
            this.each(function(one){
+               arr[one.get("tid")]==undefined ? arr[one.get("tid")]=0 :arr[one.get("tid")];
                one.set({"goodPlaces": arr[one.get("tid")]});
                newArr[one.get("tidTrain")]==undefined ? newArr[one.get("tidTrain")]=one.get("goodPlaces") : newArr[one.get("tidTrain")]+=one.get("goodPlaces");
                     
@@ -845,7 +1043,7 @@ $(function () {
            tidCoach:0,
            place:0,
            order:false,
-           goodPlace:true
+           goodPlace:false
        }
    })
    var TablePlaces = Backbone.Collection.extend({
@@ -867,10 +1065,7 @@ $(function () {
                }
                
            },this);
-           _.each(newArr, function(one){
-               if (one==undefined){one=0};
-               
-           },this);
+
            return newArr;
        }
    });
