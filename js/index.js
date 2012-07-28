@@ -18,7 +18,8 @@ $(function () {
     arrType[3]="К";
     arrType[4]="П";
     arrType[14]="С2";
-    
+
+      
 
 
     _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
@@ -60,7 +61,9 @@ $(function () {
 
 
                 success: function( data ) {
-                    senderIN.answerFacade(data, receiverIN);
+                    if (data.value!=""){
+                        senderIN.answerFacade(data, receiverIN);
+                    }
                     tasksIN.doneTask();   
                 },
                 error:function(){
@@ -197,13 +200,21 @@ $(function () {
                     model: one,
                     collection: travelResult.get("tablePlaces")
                 });
-                $(this.el).tabs( "add", "#tab-" + one.get("tid"), one.get("num")+" "+arrType[one.get("coach_type_id")] );
+                $(this.el).tabs( 
+                    "add", 
+                    "#tab-" + one.get("tid"), 
+                    "Вагон "+one.get("num")+arrType[one.get("coach_type_id")]+" "+one.get("goodPlaces")+"мест" 
+                );
                 
                 $(this.el).find("#tab-"+one.get("tid")).append(oneView.render().el);
             }
         },
         header: function(){
-            return $("<h3>").html(this.template(this.model.toJSON()));
+            var obj=this.model.toJSON();
+            obj.date_from=this.model.showTime("from");
+            obj.date_till=this.model.showTime("till");
+
+            return $("<h3>").html(this.template(obj));
 
         }
         
@@ -216,7 +227,9 @@ $(function () {
             return this;
         },
         addOne: function(one){
-            $(this.el).append($("<button>").button({ label: one.get("place") + (one.get("goodPlace")?"*": "")}));
+            $(this.el).append($("<button>").button({
+                label: one.get("place") + (one.get("goodPlace")?"*": "")
+            }));
 
 
 
@@ -224,16 +237,8 @@ $(function () {
     })
 
 
-    
-
-    
-    
-    
-    
-    
-    //End TravelResultView    
-    
-    
+    //End TravelResultView  
+     
     //Block models
     var Parametrs= Backbone.Model.extend({
        defaults: {
@@ -250,7 +255,17 @@ $(function () {
            till: "23:59"
 
            
-       } 
+       },
+       getTime:function(type){
+            var time;
+            time=this.get(type);
+            time=time.split(":");
+            time=parseInt(time[0])*60+parseInt(time[1]);
+            return time;
+            
+
+            }
+
     });
     
     var Station= Backbone.Model.extend({ 
@@ -390,11 +405,13 @@ $(function () {
             
         },
         showResult:function(){
-            
+            travelResult.falseGoodPlaces();
+            travelResult.searchGoodPlaces();
             travelResult.countGoodPlaces();
             var travelResultView = new TravelResultView({model: travelResult, el:$(this.el).find($(".Result"))});
             
         }
+
         
         
         
@@ -412,11 +429,14 @@ $(function () {
             //this.model.set("number", $(this.el).find(".number").val());
             var param=e.currentTarget.id;
             var value=e.currentTarget.value;
-            if (value=="on"){value=true;}
-            if (value=="off"){value=false;}
+            if (e.currentTarget.checked){value=true;}
+            if (!e.currentTarget.checked && e.currentTarget.value=="on"){value=false;}
             var obj={};
             obj[param]=value;
             this.model.set(obj);
+            if (travelResult){
+                appView.showResult();
+            };
         },
         render: function(){
             $(this.el).html(this.template(this.model.toJSON()));
@@ -738,6 +758,18 @@ $(function () {
            arr=this.get("tableTrains").countGoodPlaces(arr);
            this.get("tableSimpleTrips").countGoodPlaces(arr);
            
+       },
+       searchGoodPlaces: function(){
+            var goodTrains=this.get("tableTrains").searchGoodPlaces();
+            var goodCoaches=this.get("tableCoaches").searchGoodPlaces(goodTrains);
+            var goodPlaces=this.get("tablePlaces").searchGoodPlaces(goodCoaches);
+
+       },
+       falseGoodPlaces:function(){
+            this.get("tablePlaces").each(function(one){
+                one.set({goodPlace:false});
+
+            },this);
        }
        
        
@@ -869,6 +901,31 @@ $(function () {
            station_till:"",
            date_till: 0,
            goodPlaces:0
+       },
+       showTime:function(type){
+            var ret=this.getTime(type);
+            var minute=ret%60;
+            var hour=(ret-minute)/60;
+            ret=hour+":"+minute;
+            return ret;
+
+       },
+       getTime:function(type){
+            var ret;
+            switch(type){
+                case "from":
+                    ret=this.get("date_from");
+                break;
+                case "till":
+                    ret=this.get("date_till");
+                break;
+                default:
+                    ret=this.get("date_from");
+
+            }
+            ret=((ret % (24*3600))+(3*3600))/60;
+            return ret;
+
        }
    });
    
@@ -895,6 +952,33 @@ $(function () {
            },this);
            return newArr;
            
+       },
+       getArrTrips:function(){
+            var ArrTrips=new Array();
+            travelResult.get("tableSimpleTrips").each(function(one){
+                ArrTrips[one.get("tid")]=one.get("tidTrip");
+
+            },this);
+            return ArrTrips;
+
+       },
+
+       searchGoodPlaces:function(){
+            var arrTrips=this.getArrTrips();
+            var arrGoodTrains=new Array();
+            //Проверка времени отправления
+            this.each(function(one){
+                var paramsId=arrTrips[one.get("tidSimpleTrip")];
+                var params=travel.models[paramsId].get("parametrs");
+                
+                if (one.getTime("from") >= params.getTime("from") && one.getTime("from") <= params.getTime("till")){
+                    arrGoodTrains[one.get("tid")]=paramsId;
+
+                }  
+
+            },this);
+            return arrGoodTrains;
+
        }
    });
    
@@ -1028,7 +1112,27 @@ $(function () {
            },this);
            return newArr;
            
+       },
+       searchGoodPlaces:function(goodTrains){
+        //поиск по типу вагона
+            var goodCoaches=new Array();
+            this.each(function(one){
+                if ( goodTrains[one.get("tidTrain")] != undefined){
+                    var paramsId=goodTrains[one.get("tidTrain")];
+                    var params=travel.models[paramsId].get("parametrs");
+                    if (params.get("l") && one.get("coach_type_id")==1){goodCoaches[one.get("tid")]=paramsId;}
+                    if (params.get("k") && one.get("coach_type_id")==3){goodCoaches[one.get("tid")]=paramsId;}
+                    if (params.get("p") && one.get("coach_type_id")==4){goodCoaches[one.get("tid")]=paramsId;}
+                    if (params.get("s2") && one.get("coach_type_id")==14){goodCoaches[one.get("tid")]=paramsId;}
+                    
+                }
+
+
+            },this);
+            return goodCoaches;
+
        }
+
        
        
        
@@ -1067,6 +1171,30 @@ $(function () {
            },this);
 
            return newArr;
+       },
+       searchGoodPlaces:function(goodCoaches){
+            /*this.each(function(one){
+                if ( goodCoaches[one.get("tidCoach")] != undefined){
+                    var paramsId=goodTrains[one.get("tidTrain")];
+                    var params=travel.models[paramsId].get("parametrs");
+
+                    //только нижние
+                    one.set({goodPlace:true});
+
+
+
+                    //не боковые
+                }
+
+
+            },this);*/
+            for (var index in goodCoaches){
+                var tidCoach=parseInt(index)
+                var arrPlaces=this.where({tidCoach:tidCoach});
+                console.log(arrPlaces);
+            }
+
+
        }
    });
    
@@ -1080,11 +1208,11 @@ $(function () {
     var travel;
     var travelResult;
     
-    var facade= new Facade();
+    var facade = new Facade();
     //Init application
     //var travel= new Travel();
     //var travelView = new TravelView({ collection: travel, el :$("#app") });
-    var appView=new AppView({el :$("#app")});
+    var appView = new AppView({el :$("#app")});
     //End init application
     //  var trip= new Trip();
     //  var tripView = new TripView({ model: trip, el :$("#app") });

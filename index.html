@@ -89,7 +89,10 @@
                 <div class="accordion"></div>
         </script>
         <script type="text/template" id="TrainHeader">
-                <a href="#">{{num}}</a>
+                <a href="#">
+                        <p>Поезд №{{num}} {{station_from}}-{{station_till}} Отправление:{{date_from}} Прибытие:{{date_till}}</p>
+                        <p>В наличии {{goodPlaces}} подходящих мест</p>
+                </a>
         </script>
         
         

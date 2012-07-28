@@ -10,7 +10,7 @@ unset($_POST['ajax_url']);
 $data = array();
 foreach ($_POST as $k => $v) $data[] = $k.'='.$v;
 $data = implode('&', $data);
-$teststring=$data;
+$teststring=strlen($data);
 /*
 $fp = fsockopen($url_info['host'], 80, $errno, $errstr, 6);
 if (!$fp) die("0|Не могу соединиться с ".@$url_info['host']);
