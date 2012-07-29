@@ -61,7 +61,7 @@ $(function () {
 
 
                 success: function( data ) {
-                    if (data.value!=""){
+                    if (typeof(data.value)!="string"){
                         senderIN.answerFacade(data, receiverIN);
                     }
                     tasksIN.doneTask();   
@@ -141,7 +141,8 @@ $(function () {
         events:{
             "click .toggle" : "toggle"
         },
-         initialize: function () { 
+         initialize: function () {
+            this.stateNext=true; 
             this.on('next', this.next, this);
         },
 
@@ -150,7 +151,6 @@ $(function () {
             $(this.el).find("button").button();
             $(this.el).find(".accordion").hide();
             
-            if (this.model.get("goodPlaces")>0){this.next();}
             return this;
         },
         next: function(){
@@ -175,6 +175,11 @@ $(function () {
             }
         },
         toggle:function(){
+            if (this.model.get("goodPlaces")>0 && this.stateNext){
+                this.stateNext=false;
+                this.next();
+            }
+
             $(this.el).find(".accordion").toggle();
         }
         
@@ -369,7 +374,7 @@ $(function () {
             this.render();
             
             travel= new Travel();
-            var travelView = new TravelView({collection: travel, el :$(this.el).children($(".TravelView"))});
+            this.travelView = new TravelView({collection: travel, el :$(this.el).children($(".TravelView"))});
             
             
             travel.constructFrom(JSON.parse(testString));
@@ -378,7 +383,7 @@ $(function () {
         events: {
            
             "click .search" : "search",
-            "click .console" : "consoleShow"
+            "click .research" : "showResult",
         },
         
         template: _.template($('#AppView').html()),
@@ -405,6 +410,7 @@ $(function () {
             
         },
         showResult:function(){
+            this.travelView.hide();
             travelResult.falseGoodPlaces();
             travelResult.searchGoodPlaces();
             travelResult.countGoodPlaces();
@@ -434,9 +440,7 @@ $(function () {
             var obj={};
             obj[param]=value;
             this.model.set(obj);
-            if (travelResult){
-                appView.showResult();
-            };
+            
         },
         render: function(){
             $(this.el).html(this.template(this.model.toJSON()));
@@ -605,6 +609,7 @@ $(function () {
         initialize: function(){
             this.model.on('destroy', this.remove, this);
             this.model.on('change', this.render, this);
+            this.model.on('toggle', this.toggle, this);
             this.model.trigger("change");
             //this.render();
 
@@ -630,6 +635,10 @@ $(function () {
         
         
         },
+        toggle:function(){
+            $(this.el).find(".toggleIN").toggle();
+
+        },
         deleteOne: function() {
             this.model.destroy();
             return false;
@@ -644,7 +653,9 @@ $(function () {
     var TravelView = EnumsView.extend({
         template: _.template($('#TravelView').html()),
         events: {
-            "click .addTrip" : "createOne"
+            "click .addTrip" : "createOne",
+            "click .toggleTrip": "toggle"
+            
         },
         initialize: function() {
 
@@ -654,6 +665,23 @@ $(function () {
             
 
         },
+        toggle:function(){
+            this.collection.each(function(one){
+                one.trigger("toggle");
+
+            },this);
+            $(this.el).children(".addTrip" ).toggle();
+            var label = $(this.el).children(".toggleTrip" ).button( "option", "label" );
+            label=="Свернуть"?label="Развернуть":label="Свернуть";
+            $(this.el).find(".toggleTrip").button( "option", "label", label );
+
+        },
+        hide:function(){
+            var label = $(this.el).children(".toggleTrip" ).button( "option", "label" );
+            if(label=="Свернуть"){this.toggle();}
+
+        },
+
         createOne: function() {
             var newParametrs = new Parametrs();
             var newStationsFrom = new Stations();
@@ -750,7 +778,7 @@ $(function () {
            },this);
        },
        getTrainByTid: function (tidTrain){
-           return this.get("tableTrains").where({tid:tidTrain})[0];
+           return this.get("tableTrains").models[tidTrain];
        },
        countGoodPlaces: function(){
            var arr=this.get("tablePlaces").countGoodPlaces();
@@ -1173,17 +1201,12 @@ $(function () {
            return newArr;
        },
        searchGoodPlaces:function(goodCoaches){
-            /*this.each(function(one){
+           /* this.each(function(one){
                 if ( goodCoaches[one.get("tidCoach")] != undefined){
-                    var paramsId=goodTrains[one.get("tidTrain")];
-                    var params=travel.models[paramsId].get("parametrs");
-
-                    //только нижние
+                    
                     one.set({goodPlace:true});
 
 
-
-                    //не боковые
                 }
 
 
@@ -1191,7 +1214,125 @@ $(function () {
             for (var index in goodCoaches){
                 var tidCoach=parseInt(index)
                 var arrPlaces=this.where({tidCoach:tidCoach});
-                console.log(arrPlaces);
+                
+                var arr=new Array();
+                _.each(arrPlaces, function(one){
+                    arr[one.get("place")]=true;
+
+                },this)
+
+                var paramsId=goodCoaches[index];
+                var params=travel.models[paramsId].get("parametrs");
+
+                var coach_type_id=travelResult.get("tableCoaches").models[tidCoach].get("coach_type_id");
+                
+                if(coach_type_id==3){
+                    if (params.get("one") && params.get("number") >4 ) {
+                        continue;
+                    }
+                    
+                    if (!params.get("one") && params.get("down")){
+                        var coutPlaces=0;
+                        _.each(arrPlaces, function(one){
+                            if(one.get("place")%2==1){coutPlaces++;}
+
+                        },this)
+                        
+                        if (coutPlaces >=params.get("number")){
+                            _.each(arrPlaces, function(one){
+                                if(one.get("place")%2==1){
+                                    one.set({goodPlace:true});
+                                }
+                            },this)
+
+                        }
+
+                    }
+
+                    if (!params.get("one") && !params.get("down") ){
+                        if(arrPlaces.length>=params.get("number")){
+                            _.each(arrPlaces, function(one){
+                                one.set({goodPlace:true});
+                            },this);
+                        }
+                    }
+
+                    if ( params.get("one") && params.get("down") ){
+                        
+                        for (var i=1; i<=40; i=i+4){
+                            var down=(arr[i]?1:0)+(arr[i+2]?1:0);
+                            var up=(arr[i+1]?1:0)+(arr[i+3]?1:0);
+
+                            if (params.get("number")==1 && down>=1){
+                                _.each(arrPlaces, function(one){
+                                    if(one.get("place")==i || one.get("place")==i+2){
+                                        one.set({goodPlace:true});
+                                    }
+                                },this);
+
+                            }
+                            if (params.get("number")==2 && down==2){
+                                _.each(arrPlaces, function(one){
+                                    if(one.get("place")==i || one.get("place")==i+2){
+                                        one.set({goodPlace:true});
+                                    }
+                                },this);
+
+                            }
+                            if (params.get("number")==3 && down==2 && up>=1){
+                                _.each(arrPlaces, function(one){
+                                    if(one.get("place")==i || one.get("place")==i+2 || one.get("place")==i+1 || one.get("place")==i+3){
+                                        one.set({goodPlace:true});
+                                    }
+                                },this);
+
+                            }
+                            if (params.get("number")==4 && down==2 && up==2){
+                                _.each(arrPlaces, function(one){
+                                    if(one.get("place")==i || one.get("place")==i+2 || one.get("place")==i+1 || one.get("place")==i+3){
+                                        one.set({goodPlace:true});
+                                    }
+                                },this);
+
+                            }                         
+
+
+                        }
+
+
+                    }
+
+                    if ( params.get("one") && !params.get("down") ){
+                        
+                        for (var i=1; i<=40; i=i+4){
+                            var all=(arr[i]?1:0)+(arr[i+2]?1:0)+(arr[i+1]?1:0)+(arr[i+3]?1:0);
+                            
+                            if (all >=params.get("number") ){
+                                _.each(arrPlaces, function(one){
+                                    if(one.get("place")==i || one.get("place")==i+2 || one.get("place")==i+1 || one.get("place")==i+3){
+                                        one.set({goodPlace:true});
+                                    }
+                                },this);
+
+                            }                         
+
+
+                        }
+
+
+                    }
+
+
+
+
+                }
+
+                if(coach_type_id==1){
+                    
+
+
+                }
+                
             }
 
 
