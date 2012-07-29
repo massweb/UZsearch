@@ -21,7 +21,7 @@ $(function () {
 
       
 
-
+     
     _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
     
     var Facade = Backbone.Model.extend({
@@ -201,10 +201,18 @@ $(function () {
         },
         addOne: function(one) {
             if ( one.get("goodPlaces")>0 ) {
-                var oneView = new CoachResultView({
-                    model: one,
-                    collection: travelResult.get("tablePlaces")
-                });
+                if (one.get("coach_type_id")==3){
+                    var oneView = new KupeResultView({
+                        model: one,
+                        collection: travelResult.get("tablePlaces")
+                    });
+
+                } else {
+                    var oneView = new CoachResultView({
+                        model: one,
+                        collection: travelResult.get("tablePlaces")
+                    });
+                }
                 $(this.el).tabs( 
                     "add", 
                     "#tab-" + one.get("tid"), 
@@ -233,6 +241,23 @@ $(function () {
         },
         addOne: function(one){
             $(this.el).append($("<button>").button({
+                label: one.get("place") + (one.get("goodPlace")?"*": "")
+            }));
+
+
+
+        }
+    })
+
+    var KupeResultView =Backbone.View.extend({
+        template: _.template($('#KupeView').html()),
+        render: function(){
+            $(this.el).html(this.template());
+            _.each(this.collection.where({tidCoach: this.model.get("tid")}),this.addOne,this);
+            return this;
+        },
+        addOne: function(one){
+            $(this.el).find("#p"+one.get("place")).html($("<button>").button({
                 label: one.get("place") + (one.get("goodPlace")?"*": "")
             }));
 
