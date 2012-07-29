@@ -201,18 +201,39 @@ $(function () {
         },
         addOne: function(one) {
             if ( one.get("goodPlaces")>0 ) {
-                if (one.get("coach_type_id")==3){
-                    var oneView = new KupeResultView({
+                switch(one.get("coach_type_id")){
+                    case "1":
+                        var oneView = new LResultView({
+                            model: one,
+                            collection: travelResult.get("tablePlaces")
+                        });
+
+
+                    break;
+                    case "3":
+                        var oneView = new KResultView({
+                            model: one,
+                            collection: travelResult.get("tablePlaces")
+                        });
+
+
+                    break;
+                    case "4":
+                        var oneView = new PResultView({
+                            model: one,
+                            collection: travelResult.get("tablePlaces")
+                        });
+
+                    break;
+                    default:
+                        var oneView = new CoachResultView({
                         model: one,
                         collection: travelResult.get("tablePlaces")
                     });
 
-                } else {
-                    var oneView = new CoachResultView({
-                        model: one,
-                        collection: travelResult.get("tablePlaces")
-                    });
+
                 }
+
                 $(this.el).tabs( 
                     "add", 
                     "#tab-" + one.get("tid"), 
@@ -249,8 +270,7 @@ $(function () {
         }
     })
 
-    var KupeResultView =Backbone.View.extend({
-        template: _.template($('#KupeView').html()),
+    var OneCoachView=Backbone.View.extend({
         render: function(){
             $(this.el).html(this.template());
             _.each(this.collection.where({tidCoach: this.model.get("tid")}),this.addOne,this);
@@ -264,7 +284,22 @@ $(function () {
 
 
         }
-    })
+    });
+
+    var KResultView =OneCoachView.extend({
+        template: _.template($('#KView').html()),
+        
+    });
+
+    var PResultView =OneCoachView.extend({
+        template: _.template($('#PView').html()),
+        
+    });
+
+    var LResultView =OneCoachView.extend({
+        template: _.template($('#LView').html()),
+        
+    });
 
 
     //End TravelResultView  
@@ -1225,36 +1260,45 @@ $(function () {
 
            return newArr;
        },
-       searchGoodPlaces:function(goodCoaches){
-           /* this.each(function(one){
-                if ( goodCoaches[one.get("tidCoach")] != undefined){
-                    
-                    one.set({goodPlace:true});
+       checkL: function(params, one, arrPlaces, arr){
+            if ( !(params.get("one") && params.get("number") >2) ) {
+                if (!params.get("one") ){
+                    if(arrPlaces.length>=params.get("number")){
+                        _.each(arrPlaces, function(one){
+                            one.set({goodPlace:true});
+                        },this);
+                    }
+                }
 
+                if ( params.get("one") ){
+                        
+                    for (var i=1; i<20; i=i+2){
+                        var all=(arr[i]?1:0)+(arr[i+1]?1:0);
+                        
+                        if (all >=params.get("number") ){
+                            _.each(arrPlaces, function(one){
+                                if(one.get("place")==i || one.get("place")==i+1){
+                                    one.set({goodPlace:true});
+                                }
+                            },this);
+
+                        }                         
+
+
+                    }
 
                 }
 
 
-            },this);*/
-            for (var index in goodCoaches){
-                var tidCoach=parseInt(index)
-                var arrPlaces=this.where({tidCoach:tidCoach});
+
+
+            }
+
+       },
+       checkK:function(params, one, arrPlaces, arr){
+                if ( !(params.get("one") && params.get("number") >4) ) {
+                    
                 
-                var arr=new Array();
-                _.each(arrPlaces, function(one){
-                    arr[one.get("place")]=true;
-
-                },this)
-
-                var paramsId=goodCoaches[index];
-                var params=travel.models[paramsId].get("parametrs");
-
-                var coach_type_id=travelResult.get("tableCoaches").models[tidCoach].get("coach_type_id");
-                
-                if(coach_type_id==3){
-                    if (params.get("one") && params.get("number") >4 ) {
-                        continue;
-                    }
                     
                     if (!params.get("one") && params.get("down")){
                         var coutPlaces=0;
@@ -1284,7 +1328,7 @@ $(function () {
 
                     if ( params.get("one") && params.get("down") ){
                         
-                        for (var i=1; i<=40; i=i+4){
+                        for (var i=1; i<40; i=i+4){
                             var down=(arr[i]?1:0)+(arr[i+2]?1:0);
                             var up=(arr[i+1]?1:0)+(arr[i+3]?1:0);
 
@@ -1329,7 +1373,7 @@ $(function () {
 
                     if ( params.get("one") && !params.get("down") ){
                         
-                        for (var i=1; i<=40; i=i+4){
+                        for (var i=1; i<40; i=i+4){
                             var all=(arr[i]?1:0)+(arr[i+2]?1:0)+(arr[i+1]?1:0)+(arr[i+3]?1:0);
                             
                             if (all >=params.get("number") ){
@@ -1344,19 +1388,137 @@ $(function () {
 
                         }
 
+                    }
+
+
+                }
+
+       },
+       checkP:function(params, one, arrPlaces, arr){
+            if (params.get("side")){
+                arrPlaces = _.filter(arrPlaces, function(one){ return one.get("place") <=36; },this);
+                arr=new Array();
+                _.each(arrPlaces, function(one){
+                    arr[one.get("place")]=true;
+
+                },this)
+                this.checkK(params, one, arrPlaces, arr);
+            } else {
+                if ( params.get("one") && !params.get("down") ){
+                    for (var i=1; i<36; i=i+4){
+                        var all=(arr[i]?1:0)+(arr[i+2]?1:0)+(arr[i+1]?1:0)+(arr[i+3]?1:0)+(arr[54-Math.floor(i/4)*2-1]?1:0)+(arr[54-Math.floor(i/4)*2]?1:0);                     
+                        if (all >=params.get("number") ){
+                            _.each(arrPlaces, function(one){
+                                if(one.get("place")==i || one.get("place")==i+2 || one.get("place")==i+1 || one.get("place")==i+3 || one.get("place")==54-Math.floor(i/4)*2-1|| one.get("place")==54-Math.floor(i/4)*2){
+                                    one.set({goodPlace:true});
+                                }
+                            },this);
+                        }                         
+                    }
+                }
+                if (!params.get("one") && !params.get("down") ){
+                    if(arrPlaces.length>=params.get("number")){
+                        _.each(arrPlaces, function(one){
+                            one.set({goodPlace:true});
+                        },this);
+                    }
+                }
+
+                if (!params.get("one") && params.get("down")){
+                    var coutPlaces=0;
+                    _.each(arrPlaces, function(one){
+                        if(one.get("place")%2==1){coutPlaces++;}
+
+                    },this)
+                    
+                    if (coutPlaces >=params.get("number")){
+                        _.each(arrPlaces, function(one){
+                            if(one.get("place")%2==1){
+                                one.set({goodPlace:true});
+                            }
+                        },this)
+
+                    }
+
+                }
+
+                if ( params.get("one") && params.get("down") ){
+                        
+                    for (var i=1; i<40; i=i+4){
+                        var down=(arr[i]?1:0)+(arr[i+2]?1:0)+(arr[54-Math.floor(i/4)*2-1]?1:0);
+                        var up=(arr[i+1]?1:0)+(arr[i+3]?1:0)+(arr[54-Math.floor(i/4)*2]?1:0);
+
+                        if ( (params.get("number")==1 && down>=1) || (params.get("number")==2 && down>=2) || (params.get("number")==3 && down>=3)){
+                            _.each(arrPlaces, function(one){
+                                if(one.get("place")==i || one.get("place")==i+2 || one.get("place")==54-Math.floor(i/4)*2-1){
+                                    one.set({goodPlace:true});
+                                }
+                            },this);
+
+                        }
+                        
+                        if ( (params.get("number")==4 && down==3 && up>=1) || (params.get("number")==5 && down==3 && up>=2) || (params.get("number")==6 && down==3 && up==3)){
+                            _.each(arrPlaces, function(one){
+                                if( one.get("place")==i || one.get("place")==i+2 || one.get("place")==i+1 || one.get("place")==i+3 || one.get("place")==54-Math.floor(i/4)*2-1 || one.get("place")==54-Math.floor(i/4)*2 ) {
+                                    one.set({goodPlace:true});
+                                }
+                            },this);
+
+                        }
+                        
+
+
 
                     }
 
 
-
-
                 }
 
-                if(coach_type_id==1){
-                    
 
 
+
+
+
+
+            }
+
+       },
+       searchGoodPlaces:function(goodCoaches){
+           /* */
+            for (var index in goodCoaches){
+                var tidCoach=parseInt(index)
+                var arrPlaces=this.where({tidCoach:tidCoach});
+                
+                var arr=new Array();
+                _.each(arrPlaces, function(one){
+                    arr[one.get("place")]=true;
+
+                },this)
+
+                var paramsId=goodCoaches[index];
+                var params=travel.models[paramsId].get("parametrs");
+
+                var coach_type_id=travelResult.get("tableCoaches").models[tidCoach].get("coach_type_id");
+                
+                switch (coach_type_id){
+                    case "1":
+                        this.checkL(params, one, arrPlaces, arr);
+                    break;
+                    case "3":
+                        this.checkK(params, one, arrPlaces, arr);
+                    break;
+                    case "4":
+                         this.checkP(params, one, arrPlaces, arr);
+                    break;
+
+                    default:
+                        this.each(function(one){
+                            if ( goodCoaches[one.get("tidCoach")] != undefined){
+                                one.set({goodPlace:true});
+                            }
+                        },this);
                 }
+
                 
             }
 
