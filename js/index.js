@@ -428,17 +428,25 @@ $(function () {
     //Block AppViews
     var AppView=Backbone.View.extend({
         initialize: function (options) {
-            var testString='[{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"}]},{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"31.08.2012"}]}]';
+            //var testString='[{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"}]},{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"31.08.2012"}]}]';
             
-            
+            changer.on("change", this.up, this);
             this.render();
             
             travel= new Travel();
             this.travelView = new TravelView({collection: travel, el :$(this.el).children($(".TravelView"))});
             
             
-            travel.constructFrom(JSON.parse(testString));
+            //travel.constructFrom(JSON.parse(testString));
             
+        },
+        up:function(){
+            if (changer.get("type")=="from"){
+                var jsonstring=changer.get("jsonstring");
+                travel.constructFrom(JSON.parse(jsonstring));
+                changer.set({type:"none"});
+            }
+
         },
         events: {
            
@@ -1532,6 +1540,20 @@ $(function () {
         
   //End Relation Logic      
     //End block SearchResult
+
+    var Changer= Backbone.Model.extend({
+            defaults:{
+                jsonstring:"",
+                type:"none"
+
+            }
+        });
+
+        var changer=new Changer();
+
+
+    //end changer
+    //paste here
     
     var travel;
     var travelResult;
