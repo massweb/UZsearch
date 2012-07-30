@@ -23,6 +23,7 @@ $(function () {
 
      
     _.templateSettings = {interpolate : /\{\{(.+?)\}\}/g};
+    $.datepicker.setDefaults( $.datepicker.regional[ "ru" ] );
     
     var Facade = Backbone.Model.extend({
         path: "mock.php?type=",
@@ -57,9 +58,10 @@ $(function () {
             $.ajax({
                 url: this.path+type+"/",
                 type: "post",
+                beforeSend: function ( xhr ) {
+                    xhr.setRequestHeader("X-CSRF-Token", $('meta[name=csrf-token]').attr('content'));
+                },
                 data: data,
-
-
                 success: function( data ) {
                     if (typeof(data.value)!="string"){
                         senderIN.answerFacade(data, receiverIN);
@@ -428,7 +430,7 @@ $(function () {
     //Block AppViews
     var AppView=Backbone.View.extend({
         initialize: function (options) {
-            //var testString='[{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"}]},{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"31.08.2012"}]}]';
+            var testString='[{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Днепропетровск Главный","station_id":2210700}],"stationsTo":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"dates":[{"date":"24.08.2012"}]},{"parametrs":{"number":"2","l":false,"k":true,"p":false,"s1":false,"s2":false,"down":true,"one":true,"side":false,"from":"15:00","till":"23:59"},"stationsFrom":[{"title":"Евпатория-Курорт","station_id":2210770},{"title":"Симферополь","station_id":2210001}],"stationsTo":[{"title":"Днепропетровск Главный","station_id":2210700}],"dates":[{"date":"31.08.2012"}]}]';
             
             changer.on("change", this.up, this);
             this.render();
@@ -437,7 +439,7 @@ $(function () {
             this.travelView = new TravelView({collection: travel, el :$(this.el).children($(".TravelView"))});
             
             
-            //travel.constructFrom(JSON.parse(testString));
+            travel.constructFrom(JSON.parse(testString));
             
         },
         up:function(){

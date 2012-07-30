@@ -1,5 +1,13 @@
-td {
-	width:30px;
+table .box {
+	border:solid 1px black;
+	
 	text-align:center;
+}
+
+table .box td{
+	width:50px;
+	height:50px;
+
+
 }
 
